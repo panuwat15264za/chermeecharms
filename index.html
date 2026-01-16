@@ -6,21 +6,21 @@
     <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
     <title>Flipbook</title>
 
-    <!-- CSS -->
     <link rel="stylesheet" href="style.css">
 
-    <!-- jQuery + Turn.js -->
-    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/turn.js/4/turn.min.js"></script>
+    <!-- jQuery -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+
+    <!-- ✅ Turn.js v3 (ตัวนี้มีจริงบน cdnjs) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/turn.js/3/turn.min.js"></script>
 </head>
 
 <body>
 
-    <!-- TOP BAR -->
     <div class="ui">
         <div class="left">
             <div class="pill">
-                หน้า <span id="cur">1</span> / <span id="tot">6</span>
+                หน้า <span id="cur">1</span> / <span id="tot">1</span>
             </div>
         </div>
         <div class="right">
@@ -28,29 +28,21 @@
         </div>
     </div>
 
-    <!-- STAGE -->
     <div class="stage">
         <div id="zoomWrap" class="zoomWrap">
             <div id="flipbook">
-
-                <!-- 🔽 ใส่หน้าหนังสือเองตรงนี้ -->
-                <div class="page"><img src="pages/01.png"></div>
-                <div class="page"><img src="pages/02.jpg"></div>
-                <div class="page"><img src="pages/03.jpg"></div>
-                <div class="page"><img src="pages/04.png"></div>
-                <div class="page"><img src="pages/05.png"></div>
-                <div class="page"><img src="pages/06.png"></div>
-
+                <div class="page"><img src="pages/01.png" alt=""></div>
+                <div class="page"><img src="pages/02.jpg" alt=""></div>
+                <div class="page"><img src="pages/03.jpg" alt=""></div>
             </div>
         </div>
     </div>
 
-    <!-- BOTTOM BAR -->
     <div class="bottom">
         <button class="navbtn" id="prev">◀</button>
 
         <div class="pill" style="flex:1;justify-content:center;">
-            <input id="slider" type="range" min="1" max="6" value="1">
+            <input id="slider" type="range" min="1" max="1" value="1">
         </div>
 
         <button class="navbtn" id="next">▶</button>
@@ -58,66 +50,98 @@
 
     <script>
         (function () {
-            const TOTAL = 6;
-            const $fb = $("#flipbook");
-            const $cur = $("#cur");
-            const $slider = $("#slider");
-            const $zoomWrap = $("#zoomWrap");
-            let zoomed = false;
+            var $fb = $("#flipbook");
+            var $cur = $("#cur");
+            var $tot = $("#tot");
+            var $slider = $("#slider");
+            var $zoomWrap = $("#zoomWrap");
+            var zoomed = false;
 
-            // A4 แนวตั้ง
-            const PAGE_RATIO = 0.707;
+            // นับหน้าจาก .page จริง
+            var TOTAL = $fb.children(".page").length || 1;
+            $tot.text(TOTAL);
+            $slider.attr("max", TOTAL).val(1);
+
+            // A4 แนวตั้ง (ใกล้เคียง)
+            var PAGE_RATIO = 0.707;
 
             function calcSize() {
-                const top = 58, bottom = 58;
-                const h = Math.min(780, window.innerHeight - top - bottom - 24);
-                const w = Math.min(window.innerWidth - 24, Math.round(h * PAGE_RATIO));
-                return { w, h };
-            }
-
-            function init() {
-                if ($fb.data("turn")) $fb.turn("destroy");
-
-                const { w, h } = calcSize();
-                $fb.css({ width: w, height: h });
-
-                $fb.turn({
-                    width: w,
-                    height: h,
-                    display: "single",
-                    autoCenter: true,
-                    gradients: true,
-                    elevation: 60
-                });
-
-                $fb.turn("page", 1);
-                updateUI(1);
+                var top = 58, bottom = 58;
+                var h = Math.min(780, window.innerHeight - top - bottom - 24);
+                var w = Math.min(window.innerWidth - 24, Math.round(h * PAGE_RATIO));
+                return { w: w, h: h };
             }
 
             function updateUI(p) {
                 $cur.text(p);
                 $slider.val(p);
+                // ปิดปุ่มเมื่อสุดหน้า (กันกดแล้วเหมือนค้าง)
+                $("#prev").prop("disabled", p <= 1);
+                $("#next").prop("disabled", p >= TOTAL);
             }
 
-            $("#prev").on("click", () => $fb.turn("previous"));
-            $("#next").on("click", () => $fb.turn("next"));
+            // ✅ safe call แบบที่ใช้ได้กับ Turn.js v3
+            function safeTurn(fn) {
+                if (typeof $.fn.turn !== "function") return false;
+                // ถ้ายังไม่ init จะไม่มี data('turned') ในหลาย build → ใช้ try/catch กันพังแทน
+                try { fn(); return true; } catch (e) { return false; }
+            }
 
-            $slider.on("input", function () {
-                $fb.turn("page", parseInt(this.value, 10));
+            function init() {
+                if (typeof $.fn.turn !== "function") {
+                    console.error("Turn.js โหลดไม่สำเร็จ: $.fn.turn =", $.fn.turn);
+                    alert("Turn.js โหลดไม่สำเร็จ (เช็ค Network ว่า turn.min.js status 200 ไหม)");
+                    return;
+                }
+
+                // destroy ถ้ามี
+                try { $fb.turn("destroy"); } catch (e) { }
+
+                var s = calcSize();
+                $fb.css({ width: s.w, height: s.h });
+
+                $fb.turn({
+                    width: s.w,
+                    height: s.h,
+                    display: "single",
+                    autoCenter: true,
+                    gradients: true
+                });
+
+                // เริ่มหน้า 1
+                $fb.turn("page", 1);
+                updateUI(1);
+            }
+
+            // ปุ่มก่อนหน้า/ถัดไป
+            $("#prev").on("click", function () {
+                safeTurn(function () { $fb.turn("previous"); });
             });
 
-            $("#zoom").on("click", () => {
+            $("#next").on("click", function () {
+                safeTurn(function () { $fb.turn("next"); });
+            });
+
+            // Slider ไปหน้าที่ต้องการ
+            $slider.on("input change", function () {
+                var p = parseInt(this.value, 10) || 1;
+                safeTurn(function () { $fb.turn("page", p); });
+                updateUI(p);
+            });
+
+            // ซูม
+            $("#zoom").on("click", function () {
                 zoomed = !zoomed;
-                $zoomWrap.style;
                 $zoomWrap.css("transform", zoomed ? "scale(1.2)" : "scale(1)");
                 $("#zoom").text(zoomed ? "ย่อ" : "ซูม");
             });
 
-            $fb.on("turning", function (e, page) {
+            // อัปเดต UI ตอนพลิกหน้า (Turn.js จะยิง event นี้)
+            $fb.on("turned", function (e, page) {
                 updateUI(page);
             });
 
-            window.addEventListener("resize", () => {
+            window.addEventListener("resize", function () {
                 clearTimeout(window.__r);
                 window.__r = setTimeout(init, 120);
             });
@@ -125,6 +149,7 @@
             init();
         })();
     </script>
+
 
 </body>
 

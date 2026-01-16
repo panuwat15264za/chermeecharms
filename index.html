@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="th">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+    <title>Flipbook</title>
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="style.css">
+
+    <!-- jQuery + Turn.js -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/turn.js/4/turn.min.js"></script>
+</head>
+
+<body>
+
+    <!-- TOP BAR -->
+    <div class="ui">
+        <div class="left">
+            <div class="pill">
+                หน้า <span id="cur">1</span> / <span id="tot">6</span>
+            </div>
+        </div>
+        <div class="right">
+            <button id="zoom">ซูม</button>
+        </div>
+    </div>
+
+    <!-- STAGE -->
+    <div class="stage">
+        <div id="zoomWrap" class="zoomWrap">
+            <div id="flipbook">
+
+                <!-- 🔽 ใส่หน้าหนังสือเองตรงนี้ -->
+                <div class="page"><img src="pages/01.png"></div>
+                <div class="page"><img src="pages/02.png"></div>
+                <div class="page"><img src="pages/03.png"></div>
+                <div class="page"><img src="pages/04.png"></div>
+                <div class="page"><img src="pages/05.png"></div>
+                <div class="page"><img src="pages/06.png"></div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- BOTTOM BAR -->
+    <div class="bottom">
+        <button class="navbtn" id="prev">◀</button>
+
+        <div class="pill" style="flex:1;justify-content:center;">
+            <input id="slider" type="range" min="1" max="6" value="1">
+        </div>
+
+        <button class="navbtn" id="next">▶</button>
+    </div>
+
+    <script>
+        (function () {
+            const TOTAL = 6;
+            const $fb = $("#flipbook");
+            const $cur = $("#cur");
+            const $slider = $("#slider");
+            const $zoomWrap = $("#zoomWrap");
+            let zoomed = false;
+
+            // A4 แนวตั้ง
+            const PAGE_RATIO = 0.707;
+
+            function calcSize() {
+                const top = 58, bottom = 58;
+                const h = Math.min(780, window.innerHeight - top - bottom - 24);
+                const w = Math.min(window.innerWidth - 24, Math.round(h * PAGE_RATIO));
+                return { w, h };
+            }
+
+            function init() {
+                if ($fb.data("turn")) $fb.turn("destroy");
+
+                const { w, h } = calcSize();
+                $fb.css({ width: w, height: h });
+
+                $fb.turn({
+                    width: w,
+                    height: h,
+                    display: "single",
+                    autoCenter: true,
+                    gradients: true,
+                    elevation: 60
+                });
+
+                $fb.turn("page", 1);
+                updateUI(1);
+            }
+
+            function updateUI(p) {
+                $cur.text(p);
+                $slider.val(p);
+            }
+
+            $("#prev").on("click", () => $fb.turn("previous"));
+            $("#next").on("click", () => $fb.turn("next"));
+
+            $slider.on("input", function () {
+                $fb.turn("page", parseInt(this.value, 10));
+            });
+
+            $("#zoom").on("click", () => {
+                zoomed = !zoomed;
+                $zoomWrap.style;
+                $zoomWrap.css("transform", zoomed ? "scale(1.2)" : "scale(1)");
+                $("#zoom").text(zoomed ? "ย่อ" : "ซูม");
+            });
+
+            $fb.on("turning", function (e, page) {
+                updateUI(page);
+            });
+
+            window.addEventListener("resize", () => {
+                clearTimeout(window.__r);
+                window.__r = setTimeout(init, 120);
+            });
+
+            init();
+        })();
+    </script>
+
+</body>
+
+</html>

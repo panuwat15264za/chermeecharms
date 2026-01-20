@@ -1,0 +1,315 @@
+<!doctype html>
+<html lang="th">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1" />
+    <title>Cheŕmee charm | ออกแบบสร้อย</title>
+
+    <!-- แยก CSS ของหน้า product -->
+    <link rel="stylesheet" href="product.css" />
+</head>
+
+<body class="productPage">
+
+    <nav class="topnav">
+        <a class="brand" href="index.html">Cheŕmee charm</a>
+        <div class="links">
+            <a href="index.html">Lookbook</a>
+            <a class="active" href="product.html">ออกแบบสร้อย</a>
+        </div>
+    </nav>
+
+    <div class="productWrap">
+        <div class="productTop">
+            <div class="productTitle">
+                <h1>ลองเรียงชาร์มเป็นสร้อย</h1>
+                <p>ลากรูปด้านล่างขึ้นมาวางบนกระดาน • ลากชิ้นงานเพื่อขยับ • ดับเบิลคลิกลบ</p>
+            </div>
+
+            <div class="productActions">
+                <button id="btnCenter" class="soft">จัดเรียงกลาง</button>
+                <button id="btnClear" class="soft">ล้างทั้งหมด</button>
+                <button id="btnSave">บันทึกรูป</button>
+            </div>
+        </div>
+
+        <!-- DESIGN BOARD -->
+        <div id="board" class="board">
+            <div class="boardHint">
+                ลากชาร์มมาวางที่นี่ ✨
+            </div>
+
+            <div id="baseLayer" class="baseLayer"></div>
+
+            <div class="neckline" aria-hidden="true"></div>
+        </div>
+
+        <!-- TRAY -->
+        <div class="tray">
+            <div class="trayHead">
+                <div class="pill">เลือกชาร์มด้านล่างแล้วลากขึ้นไป</div>
+            </div>
+
+            <div id="trayList" class="trayList"></div>
+        </div>
+
+        <!-- BASE WATCH SELECTOR -->
+        <div class="baseBar">
+            <div class="pill">เลือกตัวเรือนนาฬิกา</div>
+            <div id="baseList" class="baseList"></div>
+        </div>
+
+    </div>
+
+    <script>
+        (function () {
+            const board = document.getElementById('board');
+            const tray = document.getElementById('trayList');
+            const baseLayer = document.getElementById('baseLayer');
+            const baseList = document.getElementById('baseList');
+
+            let BASES = [];
+            let selectedBase = null;
+
+            async function loadBaseFromJson() {
+                try {
+                    const res = await fetch('bases.json', { cache: 'no-store' });
+                    if (!res.ok) throw new Error('โหลด bases.json ไม่สำเร็จ: ' + res.status);
+
+                    const data = await res.json();
+                    const basePath = data.basePath || '';
+                    const files = Array.isArray(data.files) ? data.files : [];
+
+                    BASES = files.map((name, i) => ({
+                        name: `Base ${i + 1}`,
+                        src: basePath + name
+                    }));
+
+                    renderBaseList();
+
+                } catch (err) {
+                    console.error(err);
+                    baseList.innerHTML = `<div style="color:rgba(255,255,255,.75);padding:6px 2px">
+      ไม่พบ base.json หรือโหลดไม่ได้ — กรุณาเช็คว่า base.json อยู่ข้างๆ product.html
+    </div>`;
+                    baseLayer.innerHTML = '';
+                }
+            }
+
+            function renderBaseList() {
+                baseList.innerHTML = "";
+
+                BASES.forEach((b, idx) => {
+                    const btn = document.createElement("button");
+                    btn.type = "button";
+                    btn.className = "baseItem";
+                    btn.innerHTML = `<img src="${b.src}" alt="${b.name}">`;
+                    btn.addEventListener("click", () => setBase(idx));
+                    baseList.appendChild(btn);
+                });
+
+                // default เลือกอันแรกถ้ามี
+                // if (BASES.length) setBase(0);
+            }
+
+            function setBase(index) {
+                selectedBase = BASES[index];
+
+                [...baseList.querySelectorAll(".baseItem")].forEach((el, i) => {
+                    el.classList.toggle("active", i === index);
+                });
+
+                // ✅ สร้าง base แบบเป็นชิ้นที่ลากได้ (แยกจาก charm)
+                baseLayer.innerHTML = "";
+
+                if (!selectedBase) return;
+
+                const basePiece = document.createElement("div");
+                basePiece.className = "basePiece";
+                basePiece.style.left = "50%";
+                basePiece.style.top = "50%";
+                basePiece.style.transform = "translate(-50%, -50%)";
+
+                const img = document.createElement("img");
+                img.src = selectedBase.src;
+                img.alt = selectedBase.name;
+                img.draggable = false;
+
+                basePiece.appendChild(img);
+                baseLayer.appendChild(basePiece);
+
+                enableDragInsideBoard(basePiece, true); // ✅ reuse drag function
+            }
+
+            // ✅ โหลดรูปจาก images.json แล้วสร้าง <img> ให้ tray
+            async function loadTrayFromJson() {
+                try {
+                    const res = await fetch('images.json', { cache: 'no-store' });
+                    if (!res.ok) throw new Error('โหลด images.json ไม่สำเร็จ: ' + res.status);
+
+                    const data = await res.json();
+                    const base = data.basePath || '';
+                    const files = Array.isArray(data.files) ? data.files : [];
+
+                    tray.innerHTML = '';
+
+                    files.forEach((name) => {
+                        const img = document.createElement('img');
+                        img.className = 'charm';
+                        img.draggable = true;
+                        img.loading = 'lazy';
+                        img.src = base + name;
+                        img.alt = name;
+                        tray.appendChild(img);
+                    });
+
+                } catch (err) {
+                    console.error(err);
+                    tray.innerHTML = `<div style="color:rgba(255,255,255,.75);padding:10px">
+              ไม่พบ images.json หรือโหลดไม่ได้ — กรุณาเช็คว่า images.json อยู่ข้างๆ product.html
+            </div>`;
+                }
+            }
+
+            // drag จาก tray
+            tray.addEventListener('dragstart', (e) => {
+                const img = e.target.closest('img.charm');
+                if (!img) return;
+
+                e.dataTransfer.effectAllowed = 'copy';
+                e.dataTransfer.setData('text/plain', img.src);
+                e.dataTransfer.setData('text/uri-list', img.src);
+            });
+
+            board.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                board.classList.add('dragOver');
+                e.dataTransfer.dropEffect = 'copy';
+            });
+
+            board.addEventListener('dragleave', () => board.classList.remove('dragOver'));
+
+            board.addEventListener('drop', (e) => {
+                e.preventDefault();
+                board.classList.remove('dragOver');
+
+                const src = e.dataTransfer.getData('text/plain');
+                if (!src) return;
+
+                const rect = board.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+
+                addPiece(src, x, y);
+            });
+
+            function addPiece(src, x, y) {
+                const hint = board.querySelector('.boardHint');
+                if (hint) hint.style.display = 'none';
+
+                const piece = document.createElement('div');
+                piece.className = 'piece';
+                piece.style.left = (x - 28) + 'px';
+                piece.style.top = (y - 28) + 'px';
+
+                const img = document.createElement('img');
+                img.src = src;
+                img.alt = 'charm piece';
+                img.draggable = false;
+
+                piece.appendChild(img);
+                board.appendChild(piece);
+
+                enableDragInsideBoard(piece);
+
+                piece.addEventListener('dblclick', () => {
+                    piece.remove();
+                    if (!board.querySelector('.piece')) {
+                        const hint2 = board.querySelector('.boardHint');
+                        if (hint2) hint2.style.display = '';
+                    }
+                });
+            }
+
+            function enableDragInsideBoard(piece, isBase = false) {
+                let dragging = false;
+                let offsetX = 0, offsetY = 0;
+
+                piece.addEventListener('pointerdown', (e) => {
+                    dragging = true;
+                    piece.setPointerCapture(e.pointerId);
+                    piece.classList.add('active');
+
+                    const br = board.getBoundingClientRect();
+                    const pr = piece.getBoundingClientRect();
+
+                    offsetX = e.clientX - pr.left;
+                    offsetY = e.clientY - pr.top;
+
+                    // ✅ ถ้าเป็น base ให้ดันขึ้นมาอยู่หน้าสุดของ baseLayer
+                    if (isBase) piece.style.zIndex = 5;
+                });
+
+                piece.addEventListener('pointermove', (e) => {
+                    if (!dragging) return;
+
+                    const br = board.getBoundingClientRect();
+                    let nx = e.clientX - br.left - offsetX;
+                    let ny = e.clientY - br.top - offsetY;
+
+                    const w = piece.offsetWidth;
+                    const h = piece.offsetHeight;
+                    nx = Math.max(0, Math.min(nx, br.width - w));
+                    ny = Math.max(0, Math.min(ny, br.height - h));
+
+                    piece.style.left = nx + 'px';
+                    piece.style.top = ny + 'px';
+
+                    // ✅ ถ้าเคยใช้ transform center ให้ปิดทิ้งตอนเริ่มลาก
+                    piece.style.transform = '';
+                });
+
+                piece.addEventListener('pointerup', () => {
+                    dragging = false;
+                    piece.classList.remove('active');
+                });
+            }
+
+            // actions
+            document.getElementById('btnClear').addEventListener('click', () => {
+                board.querySelectorAll('.piece').forEach(n => n.remove());
+                const hint = board.querySelector('.boardHint');
+                if (hint) hint.style.display = '';
+            });
+
+            document.getElementById('btnCenter').addEventListener('click', () => {
+                const pieces = Array.from(board.querySelectorAll('.piece'));
+                if (!pieces.length) return;
+
+                const br = board.getBoundingClientRect();
+                const midY = br.height * 0.52;
+                const gap = 10;
+
+                const totalW = pieces.reduce((sum, p) => sum + p.offsetWidth, 0) + gap * (pieces.length - 1);
+                let startX = (br.width - totalW) / 2;
+                startX = Math.max(10, startX);
+
+                pieces.forEach((p) => {
+                    p.style.left = startX + 'px';
+                    p.style.top = (midY - p.offsetHeight / 2) + 'px';
+                    startX += p.offsetWidth + gap;
+                });
+            });
+
+            document.getElementById('btnSave').addEventListener('click', () => window.print());
+
+            // ✅ เรียกโหลดรูปตอนเริ่ม
+            loadTrayFromJson();
+            loadBaseFromJson();
+        })();
+    </script>
+
+</body>
+
+</html>

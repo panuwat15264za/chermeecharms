@@ -1,0 +1,386 @@
+@import url('https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap');
+
+:root {
+    --bg: #111;
+    --panel: rgba(0, 0, 0, .45);
+    --shadow: 0 18px 60px rgba(0, 0, 0, .55);
+    --btn: #ffffffee;
+    --btnText: #111;
+    --navH: 54px;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html,
+body {
+    height: 100%;
+}
+
+body {
+    margin: 0;
+    font-family: 'Prompt', system-ui, -apple-system, "Segoe UI", sans-serif;
+    background: var(--bg);
+    color: #fff;
+}
+
+img {
+    user-select: none;
+    /* -webkit-user-drag: none; */
+}
+
+/* NAV */
+.topnav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: var(--navH);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    z-index: 20;
+    background: rgba(0, 0, 0, .55);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(255, 255, 255, .08);
+}
+
+.topnav .brand {
+    color: #fff;
+    text-decoration: none;
+    font-weight: 700;
+}
+
+.topnav .links {
+    display: flex;
+    gap: 8px;
+}
+
+.topnav .links a {
+    color: #fff;
+    text-decoration: none;
+    font-size: 13px;
+    padding: 8px 10px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, .08);
+    border: 1px solid rgba(255, 255, 255, .10);
+}
+
+.topnav .links a.active {
+    background: rgba(255, 255, 255, .92);
+    color: #111;
+    border-color: transparent;
+}
+
+/* Buttons */
+button {
+    border: 0;
+    border-radius: 10px;
+    padding: 10px 12px;
+    background: var(--btn);
+    color: var(--btnText);
+    font-weight: 800;
+    cursor: pointer;
+    box-shadow: 0 8px 22px rgba(0, 0, 0, .18);
+    transition: transform .08s ease, opacity .15s ease;
+}
+
+button:active {
+    transform: scale(.98);
+}
+
+button.soft {
+    background: rgba(255, 255, 255, .14);
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, .18);
+    box-shadow: none;
+}
+
+/* Layout */
+.productWrap {
+    padding-top: calc(var(--navH) + 12px);
+    padding-bottom: 18px;
+    min-height: 100vh;
+}
+
+.productTop {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 12px 10px;
+}
+
+.productTitle h1 {
+    margin: 0;
+    font-size: 18px;
+    line-height: 1.2;
+}
+
+.productTitle p {
+    margin: 6px 0 0;
+    color: rgba(255, 255, 255, .75);
+    font-size: 12.5px;
+}
+
+.productActions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+/* Pill */
+.pill {
+    color: #fff;
+    background: var(--panel);
+    padding: 8px 10px;
+    border-radius: 999px;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+}
+
+/* Board */
+.board {
+    position: relative;
+    margin: 0 12px;
+    height: min(52vh, 420px);
+    background: rgba(255, 255, 255, .06);
+    border: 1px solid rgba(255, 255, 255, .10);
+    border-radius: 18px;
+    box-shadow: 0 18px 60px rgba(0, 0, 0, .35);
+    overflow: hidden;
+}
+
+.board.dragOver {
+    outline: 2px dashed rgba(255, 255, 255, .55);
+    outline-offset: -10px;
+}
+
+.boardHint {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    text-align: center;
+    color: rgba(255, 255, 255, .85);
+    padding: 18px;
+    font-size: 14px;
+}
+
+.boardHint small {
+    display: block;
+    margin-top: 8px;
+    color: rgba(255, 255, 255, .65);
+    font-size: 12px;
+}
+
+.neckline {
+    position: absolute;
+    left: 6%;
+    right: 6%;
+    top: 52%;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .30), transparent);
+    opacity: .85;
+}
+
+/* Piece */
+.piece {
+    position: absolute;
+    width: 56px;
+    height: 56px;
+    /* border-radius: 14px;
+    background: rgba(0, 0, 0, .18); */
+    /* border: 1px solid rgba(255, 255, 255, .14); */
+    display: grid;
+    place-items: center;
+    cursor: grab;
+    user-select: none;
+    touch-action: none;
+    /* box-shadow: 0 10px 26px rgba(0, 0, 0, .35); */
+}
+
+.piece.active {
+    cursor: grabbing;
+    transform: scale(1.02);
+}
+
+.piece img {
+    width: 46px;
+    height: 46px;
+    object-fit: cover;
+    border-radius: 12px;
+    pointer-events: none;
+}
+
+/* Tray */
+.tray {
+    margin: 12px 12px 0;
+    background: rgba(0, 0, 0, .28);
+    border: 1px solid rgba(255, 255, 255, .10);
+    border-radius: 18px;
+    overflow: hidden;
+}
+
+.trayHead {
+    padding: 10px 10px 0;
+}
+
+.trayList {
+    display: flex;
+    gap: 10px;
+    padding: 10px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.trayList::-webkit-scrollbar {
+    height: 8px;
+}
+
+.trayList::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, .18);
+    border-radius: 999px;
+}
+
+img.charm {
+    width: 64px;
+    height: 64px;
+    object-fit: contain;
+    /* แนะนำ เพื่อไม่ครอป */
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    cursor: grab;
+    flex: 0 0 auto;
+}
+
+img.charm:active {
+    cursor: grabbing;
+}
+
+
+
+/* ===== Base selector ===== */
+.baseBar {
+    margin: 8px 12px 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.baseList {
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    padding: 6px 2px;
+    flex: 1;
+}
+
+.baseList::-webkit-scrollbar {
+    height: 8px;
+}
+
+.baseList::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, .18);
+    border-radius: 999px;
+}
+
+.baseItem {
+    flex: 0 0 auto;
+    width: 84px;
+    height: 54px;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, .06);
+    border: 1px solid rgba(255, 255, 255, .12);
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+}
+
+.baseItem img {
+    width: 74px;
+    height: 44px;
+    object-fit: contain;
+    pointer-events: none;
+}
+
+.baseItem.active {
+    background: rgba(255, 255, 255, .92);
+    border-color: transparent;
+}
+
+.baseItem.active img {
+    filter: none;
+}
+
+/* baseLayer ต้องรับ pointer เพื่อให้ลาก base ได้ */
+.baseLayer {
+    position: absolute;
+    inset: 0;
+    pointer-events: auto;
+    /* ✅ เปลี่ยนจาก none */
+    z-index: 1;
+    /* อยู่หลังชาร์ม */
+}
+
+/* ชาร์ม (.piece) ให้อยู่เหนือ base เสมอ */
+.piece {
+    z-index: 3;
+}
+
+/* ตัว base ที่ลากได้ */
+.basePiece {
+    position: absolute;
+    cursor: grab;
+    touch-action: none;
+    user-select: none;
+}
+
+.basePiece.active {
+    cursor: grabbing;
+}
+
+.basePiece img {
+    width: min(300px, 70%);
+    /* ✅ เล็กลง */
+    height: auto;
+    object-fit: contain;
+    pointer-events: none;
+}
+
+/* Print save */
+@media print {
+    body {
+        background: #fff !important;
+        color: #111 !important;
+    }
+
+    .topnav,
+    .productTop,
+    .tray {
+        display: none !important;
+    }
+
+    .board {
+        height: 80vh !important;
+        margin: 0 !important;
+        border: 0 !important;
+        box-shadow: none !important;
+        background: #fff !important;
+    }
+
+    .neckline {
+        opacity: .25 !important;
+    }
+}

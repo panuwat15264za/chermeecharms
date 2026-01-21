@@ -75,6 +75,24 @@
             // ===== Utils =====
             const isTouchLike = () => window.matchMedia('(pointer: coarse)').matches;
 
+            // ===== Lock/Unlock scroll (iOS fix) =====
+            let scrollYBeforeLock = 0;
+
+            function lockScroll() {
+                scrollYBeforeLock = window.scrollY || 0;
+                document.body.classList.add('lockScroll');
+                document.body.style.top = `-${scrollYBeforeLock}px`;
+            }
+
+            function unlockScroll() {
+                document.body.classList.remove('lockScroll');
+                const top = document.body.style.top;
+                document.body.style.top = '';
+                const y = top ? -parseInt(top, 10) : scrollYBeforeLock;
+                window.scrollTo(0, y);
+            }
+
+
             function getBoardXY(clientX, clientY) {
                 const rect = board.getBoundingClientRect();
                 return {
@@ -235,6 +253,7 @@
 
                 moveGhost(e.clientX, e.clientY);
                 tray.setPointerCapture(e.pointerId);
+                lockScroll(); 
             });
 
             tray.addEventListener('pointermove', (e) => {
@@ -277,6 +296,7 @@
                 board.classList.remove('dragOver');
                 if (ghost) ghost.remove();
                 ghost = null;
+                unlockScroll(); // ✅ ปลดล็อคเมื่อปล่อย/ยกเลิก
             }
 
             // ===== Create Charm Piece =====
@@ -335,6 +355,8 @@
                     // ✅ กันบัค scroll บนมือถือ
                     e.preventDefault();
 
+                    if (isTouchLike()) lockScroll();
+
                     dragging = true;
                     piece.setPointerCapture(e.pointerId);
                     piece.classList.add('active');
@@ -369,11 +391,13 @@
                 piece.addEventListener('pointerup', () => {
                     dragging = false;
                     piece.classList.remove('active');
+                    if (isTouchLike()) unlockScroll();
                 });
 
                 piece.addEventListener('pointercancel', () => {
                     dragging = false;
                     piece.classList.remove('active');
+                    if (isTouchLike()) unlockScroll();
                 });
             }
 

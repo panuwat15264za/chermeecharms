@@ -401,7 +401,7 @@ img.charm {
     }
 
     .board {
-        height: min(50vh, 360px);
+        height: 260px;
     }
 
     img.charm {
@@ -418,6 +418,21 @@ img.charm {
         width: 62px;
         height: 38px;
     }
+
+        .productWrap {
+            padding-bottom: 10px;
+        }
+    
+        /* ให้ tray/ฐานไม่สูงเกิน */
+        .trayList {
+            padding: 8px;
+            gap: 8px;
+        }
+    
+        .baseList {
+            padding: 4px 2px;
+            gap: 8px;
+        }
 }
 
 /* Print save */

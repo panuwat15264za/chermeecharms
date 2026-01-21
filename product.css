@@ -358,6 +358,28 @@ img.charm {
     transform: translateZ(0);
 }
 
+.transformUI {
+    position: absolute;
+    display: flex;
+    gap: 6px;
+    padding: 6px;
+    background: rgba(0, 0, 0, .6);
+    border-radius: 12px;
+    z-index: 50;
+}
+
+.transformUI.hidden {
+    display: none;
+}
+
+.transformUI button {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    padding: 0;
+    font-size: 16px;
+}
+
 /* @media (max-width: 520px) {
     .productTop {
         flex-direction: column;

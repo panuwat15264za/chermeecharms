@@ -54,8 +54,14 @@
             <div class="pill">เลือกตัวเรือนนาฬิกา</div>
             <div id="baseList" class="baseList"></div>
         </div>
-
     </div>
+
+    <div id="transformUI" class="transformUI hidden">
+        <button data-act="rotate">⟳</button>
+        <button data-act="scaleDown">−</button>
+        <button data-act="scaleUp">＋</button>
+    </div>
+
 
     <script>
         (function () {
@@ -68,6 +74,40 @@
             let selectedBase = null;
 
             const isTouchLike = () => window.matchMedia('(pointer: coarse)').matches;
+
+            let activeEl = null;
+            const ui = document.getElementById('transformUI');
+
+            function showTransformUI(el) {
+                activeEl = el;
+                const r = el.getBoundingClientRect();
+                const br = board.getBoundingClientRect();
+
+                ui.style.left = (r.left - br.left + r.width / 2 - 60) + 'px';
+                ui.style.top = (r.top - br.top - 46) + 'px';
+                ui.classList.remove('hidden');
+            }
+
+            function hideTransformUI() {
+                activeEl = null;
+                ui.classList.add('hidden');
+            }
+
+            ui.addEventListener('click', (e) => {
+                if (!activeEl) return;
+                const act = e.target.dataset.act;
+                if (!act) return;
+
+                activeEl._transform = activeEl._transform || { scale: 1, rotate: 0 };
+
+                if (act === 'rotate') activeEl._transform.rotate += 15;
+                if (act === 'scaleUp') activeEl._transform.scale = Math.min(activeEl._transform.scale + 0.1, 3);
+                if (act === 'scaleDown') activeEl._transform.scale = Math.max(activeEl._transform.scale - 0.1, 0.4);
+
+                activeEl.style.transform =
+                    `rotate(${activeEl._transform.rotate}deg) scale(${activeEl._transform.scale})`;
+            });
+
 
             function getBoardXY(clientX, clientY) {
                 const rect = board.getBoundingClientRect();
@@ -158,6 +198,11 @@
                 baseLayer.appendChild(basePiece);
 
                 enablePinchRotate(basePiece, board);
+                basePiece.addEventListener('pointerdown', (e) => {
+                    e.stopPropagation();
+                    showTransformUI(basePiece);
+                });
+
             }
 
             async function loadTrayFromJson() {
@@ -215,6 +260,10 @@
 
                 const { x, y } = getBoardXY(e.clientX, e.clientY);
                 addCharmPiece(src, x, y);
+            });
+
+            board.addEventListener('pointerdown', () => {
+                hideTransformUI();
             });
 
             let ghost = null;
@@ -318,6 +367,11 @@
 
                 piece.addEventListener('dblclick', () => removePiece(piece));
                 addLongPressToRemove(piece);
+
+                piece.addEventListener('pointerdown', (e) => {
+                    e.stopPropagation();
+                    showTransformUI(piece);
+                });
             }
 
             function removePiece(piece) {

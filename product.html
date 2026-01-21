@@ -395,17 +395,14 @@
             }
 
             function enablePinchRotate(el, container) {
-                // container = ตัวที่ใช้เป็นขอบเขต (board)
                 container = container || board;
-
-                const pointers = new Map();
 
                 // state
                 el._transform = el._transform || { scale: 1, rotate: 0 };
-
-                let dragging = false;
+                let drag1 = false;
                 let offsetX = 0, offsetY = 0;
 
+                let pinching = false;
                 let startDist = 0;
                 let startAngle = 0;
                 let startScale = 1;
@@ -422,64 +419,28 @@
                     return { x: clientX - cr.left, y: clientY - cr.top, cr };
                 }
 
+                // ====== 1 นิ้วลาก (pointer) ======
                 el.addEventListener('pointerdown', (e) => {
                     e.preventDefault();
                     el.setPointerCapture(e.pointerId);
 
-                    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+                    // ถ้ากำลัง pinch อยู่ อย่าให้ลากแทรก
+                    if (pinching) return;
 
-                    // ถ้าแตะ 2 นิ้ว → เข้าโหมด pinch/rotate
-                    if (pointers.size === 2) {
-                        const pts = [...pointers.values()];
-                        startDist = Math.hypot(pts[1].x - pts[0].x, pts[1].y - pts[0].y);
-                        startAngle = Math.atan2(pts[1].y - pts[0].y, pts[1].x - pts[0].x);
-                        startScale = el._transform.scale;
-                        startRotate = el._transform.rotate;
-                        dragging = false; // ปิดโหมดลาก
-                        return;
-                    }
-
-                    // 1 นิ้ว → โหมดลาก
-                    dragging = true;
-
+                    drag1 = true;
                     const r = el.getBoundingClientRect();
                     offsetX = e.clientX - r.left;
                     offsetY = e.clientY - r.top;
                 }, { passive: false });
 
                 el.addEventListener('pointermove', (e) => {
-                    if (!pointers.has(e.pointerId)) return;
-
-                    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
-
-                    // pinch/rotate
-                    if (pointers.size === 2) {
-                        e.preventDefault();
-                        const pts = [...pointers.values()];
-                        const dist = Math.hypot(pts[1].x - pts[0].x, pts[1].y - pts[0].y);
-                        const angle = Math.atan2(pts[1].y - pts[0].y, pts[1].x - pts[0].x);
-
-                        let scale = startScale * (dist / (startDist || dist));
-                        scale = clamp(scale, 0.4, 3);
-
-                        const rotate = startRotate + (angle - startAngle) * (180 / Math.PI);
-
-                        el._transform.scale = scale;
-                        el._transform.rotate = rotate;
-                        applyTransform();
-                        return;
-                    }
-
-                    // drag
-                    if (!dragging) return;
+                    if (!drag1 || pinching) return;
                     e.preventDefault();
 
                     const { x, y, cr } = getLocalXY(e.clientX, e.clientY);
-
                     let nx = x - offsetX;
                     let ny = y - offsetY;
 
-                    // กันหลุดขอบ container
                     const w = el.offsetWidth;
                     const h = el.offsetHeight;
                     nx = clamp(nx, 0, cr.width - w);
@@ -489,23 +450,55 @@
                     el.style.top = ny + "px";
                 }, { passive: false });
 
-                function end(e) {
-                    pointers.delete(e.pointerId);
-                    if (pointers.size < 2) {
-                        startDist = 0;
-                        startAngle = 0;
+                el.addEventListener('pointerup', () => { drag1 = false; }, { passive: true });
+                el.addEventListener('pointercancel', () => { drag1 = false; }, { passive: true });
+
+                // ====== 2 นิ้ว pinch/rotate (touch) ======
+                // ใช้ touch events เพื่อให้ iOS/มือถือทำงานชัวร์
+                el.addEventListener('touchstart', (e) => {
+                    if (e.touches.length === 2) {
+                        e.preventDefault();
+                        pinching = true;
+                        drag1 = false;
+
+                        const t1 = e.touches[0];
+                        const t2 = e.touches[1];
+
+                        startDist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+                        startAngle = Math.atan2(t2.clientY - t1.clientY, t2.clientX - t1.clientX);
+                        startScale = el._transform.scale;
+                        startRotate = el._transform.rotate;
                     }
-                    dragging = false;
+                }, { passive: false });
+
+                el.addEventListener('touchmove', (e) => {
+                    if (!pinching || e.touches.length !== 2) return;
+                    e.preventDefault();
+
+                    const t1 = e.touches[0];
+                    const t2 = e.touches[1];
+
+                    const dist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+                    const angle = Math.atan2(t2.clientY - t1.clientY, t2.clientX - t1.clientX);
+
+                    let scale = startScale * (dist / (startDist || dist));
+                    scale = clamp(scale, 0.4, 3);
+
+                    const rotate = startRotate + (angle - startAngle) * (180 / Math.PI);
+
+                    el._transform.scale = scale;
+                    el._transform.rotate = rotate;
+                    applyTransform();
+                }, { passive: false });
+
+                function endTouch(e) {
+                    if (e.touches.length < 2) pinching = false;
                 }
+                el.addEventListener('touchend', endTouch, { passive: true });
+                el.addEventListener('touchcancel', () => { pinching = false; }, { passive: true });
 
-                el.addEventListener('pointerup', end, { passive: true });
-                el.addEventListener('pointercancel', end, { passive: true });
-
-                // ตั้งค่าเริ่มต้น transform (กันบางเครื่องไม่ render)
                 applyTransform();
             }
-
-
 
             document.getElementById('btnClear').addEventListener('click', () => {
                 board.querySelectorAll('.piece').forEach(n => n.remove());

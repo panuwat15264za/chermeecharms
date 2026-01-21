@@ -409,6 +409,14 @@ img.charm {
         }
 } */
 
+.board,
+.baseLayer,
+.piece,
+.basePiece {
+    touch-action: none;
+    /* สำคัญมากสำหรับ pinch/rotate บนมือถือ */
+}
+
 html.lockScroll,
 body.lockScroll {
     height: 100%;

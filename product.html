@@ -157,7 +157,7 @@
                 basePiece.appendChild(img);
                 baseLayer.appendChild(basePiece);
 
-                enablePinchRotate(basePiece);
+                enablePinchRotate(basePiece, board);
             }
 
             async function loadTrayFromJson() {
@@ -314,7 +314,7 @@
                 piece.appendChild(img);
                 baseLayer.appendChild(piece);
 
-                enablePinchRotate(piece);
+                enablePinchRotate(piece, board);
 
                 piece.addEventListener('dblclick', () => removePiece(piece));
                 addLongPressToRemove(piece);
@@ -394,58 +394,117 @@
                 });
             }
 
-            function enablePinchRotate(el) {
-                let pointers = new Map();
+            function enablePinchRotate(el, container) {
+                // container = ตัวที่ใช้เป็นขอบเขต (board)
+                container = container || board;
+
+                const pointers = new Map();
+
+                // state
+                el._transform = el._transform || { scale: 1, rotate: 0 };
+
+                let dragging = false;
+                let offsetX = 0, offsetY = 0;
+
                 let startDist = 0;
                 let startAngle = 0;
                 let startScale = 1;
                 let startRotate = 0;
 
-                el._transform = el._transform || { scale: 1, rotate: 0 };
+                const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
 
                 function applyTransform() {
-                    el.style.transform =
-                        `scale(${el._transform.scale}) rotate(${el._transform.rotate}deg)`;
+                    el.style.transform = `rotate(${el._transform.rotate}deg) scale(${el._transform.scale})`;
+                }
+
+                function getLocalXY(clientX, clientY) {
+                    const cr = container.getBoundingClientRect();
+                    return { x: clientX - cr.left, y: clientY - cr.top, cr };
                 }
 
                 el.addEventListener('pointerdown', (e) => {
-                    pointers.set(e.pointerId, e);
+                    e.preventDefault();
                     el.setPointerCapture(e.pointerId);
 
+                    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+                    // ถ้าแตะ 2 นิ้ว → เข้าโหมด pinch/rotate
                     if (pointers.size === 2) {
-                        const [p1, p2] = [...pointers.values()];
-                        startDist = Math.hypot(p2.clientX - p1.clientX, p2.clientY - p1.clientY);
-                        startAngle = Math.atan2(p2.clientY - p1.clientY, p2.clientX - p1.clientX);
+                        const pts = [...pointers.values()];
+                        startDist = Math.hypot(pts[1].x - pts[0].x, pts[1].y - pts[0].y);
+                        startAngle = Math.atan2(pts[1].y - pts[0].y, pts[1].x - pts[0].x);
                         startScale = el._transform.scale;
                         startRotate = el._transform.rotate;
+                        dragging = false; // ปิดโหมดลาก
+                        return;
                     }
-                });
+
+                    // 1 นิ้ว → โหมดลาก
+                    dragging = true;
+
+                    const r = el.getBoundingClientRect();
+                    offsetX = e.clientX - r.left;
+                    offsetY = e.clientY - r.top;
+                }, { passive: false });
 
                 el.addEventListener('pointermove', (e) => {
                     if (!pointers.has(e.pointerId)) return;
-                    pointers.set(e.pointerId, e);
 
+                    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+                    // pinch/rotate
                     if (pointers.size === 2) {
-                        const [p1, p2] = [...pointers.values()];
-                        const dist = Math.hypot(p2.clientX - p1.clientX, p2.clientY - p1.clientY);
-                        const angle = Math.atan2(p2.clientY - p1.clientY, p2.clientX - p1.clientX);
+                        e.preventDefault();
+                        const pts = [...pointers.values()];
+                        const dist = Math.hypot(pts[1].x - pts[0].x, pts[1].y - pts[0].y);
+                        const angle = Math.atan2(pts[1].y - pts[0].y, pts[1].x - pts[0].x);
 
-                        let scale = startScale * (dist / startDist);
-                        scale = Math.max(0.4, Math.min(scale, 3)); // จำกัดขนาด
+                        let scale = startScale * (dist / (startDist || dist));
+                        scale = clamp(scale, 0.4, 3);
 
-                        const rotate =
-                            startRotate + (angle - startAngle) * (180 / Math.PI);
+                        const rotate = startRotate + (angle - startAngle) * (180 / Math.PI);
 
                         el._transform.scale = scale;
                         el._transform.rotate = rotate;
-
                         applyTransform();
+                        return;
                     }
-                });
 
-                el.addEventListener('pointerup', (e) => pointers.delete(e.pointerId));
-                el.addEventListener('pointercancel', (e) => pointers.delete(e.pointerId));
+                    // drag
+                    if (!dragging) return;
+                    e.preventDefault();
+
+                    const { x, y, cr } = getLocalXY(e.clientX, e.clientY);
+
+                    let nx = x - offsetX;
+                    let ny = y - offsetY;
+
+                    // กันหลุดขอบ container
+                    const w = el.offsetWidth;
+                    const h = el.offsetHeight;
+                    nx = clamp(nx, 0, cr.width - w);
+                    ny = clamp(ny, 0, cr.height - h);
+
+                    el.style.left = nx + "px";
+                    el.style.top = ny + "px";
+                }, { passive: false });
+
+                function end(e) {
+                    pointers.delete(e.pointerId);
+                    if (pointers.size < 2) {
+                        startDist = 0;
+                        startAngle = 0;
+                    }
+                    dragging = false;
+                }
+
+                el.addEventListener('pointerup', end, { passive: true });
+                el.addEventListener('pointercancel', end, { passive: true });
+
+                // ตั้งค่าเริ่มต้น transform (กันบางเครื่องไม่ render)
+                applyTransform();
             }
+
 
 
             document.getElementById('btnClear').addEventListener('click', () => {

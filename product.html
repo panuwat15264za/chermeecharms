@@ -5,8 +5,6 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1" />
     <title>Cheŕmee charm | ออกแบบสร้อย</title>
-
-    <!-- แยก CSS ของหน้า product -->
     <link rel="stylesheet" href="product.css" />
 </head>
 
@@ -34,7 +32,6 @@
             </div>
         </div>
 
-        <!-- DESIGN BOARD -->
         <div id="board" class="board">
             <div class="boardHint">
                 ลากชาร์มมาวางที่นี่ ✨
@@ -45,7 +42,6 @@
             <div class="neckline" aria-hidden="true"></div>
         </div>
 
-        <!-- TRAY -->
         <div class="tray">
             <div class="trayHead">
                 <div class="pill">เลือกชาร์มด้านล่างแล้วลากขึ้นไป</div>
@@ -54,7 +50,6 @@
             <div id="trayList" class="trayList"></div>
         </div>
 
-        <!-- BASE WATCH SELECTOR -->
         <div class="baseBar">
             <div class="pill">เลือกตัวเรือนนาฬิกา</div>
             <div id="baseList" class="baseList"></div>
@@ -72,7 +67,6 @@
             let BASES = [];
             let selectedBase = null;
 
-            // ===== Utils =====
             const isTouchLike = () => window.matchMedia('(pointer: coarse)').matches;
 
             function getBoardXY(clientX, clientY) {
@@ -84,7 +78,6 @@
                 };
             }
 
-            // ===== Lock/Unlock scroll (iOS fix) =====
             let scrollYBeforeLock = 0;
             function lockScroll() {
                 scrollYBeforeLock = window.scrollY || 0;
@@ -103,7 +96,6 @@
                 window.scrollTo(0, y);
             }
 
-            // ===== Load Bases =====
             async function loadBaseFromJson() {
                 try {
                     const res = await fetch('bases.json', { cache: 'no-store' });
@@ -138,7 +130,6 @@
                     btn.addEventListener("click", () => setBase(idx));
                     baseList.appendChild(btn);
                 });
-                // ✅ ไม่ต้องโชว์ base ก่อน กดเลือกค่อยขึ้น
             }
 
             function setBase(index) {
@@ -169,7 +160,6 @@
                 enableDragInsideBoard(basePiece, { isBase: true });
             }
 
-            // ===== Load Charms =====
             async function loadTrayFromJson() {
                 try {
                     const res = await fetch('images.json', { cache: 'no-store' });
@@ -184,7 +174,7 @@
                     files.forEach((name) => {
                         const img = document.createElement('img');
                         img.className = 'charm';
-                        img.draggable = !isTouchLike(); // ✅ มือถือไม่ใช้ drag html5
+                        img.draggable = !isTouchLike();
                         img.loading = 'lazy';
                         img.src = base + name;
                         img.alt = name;
@@ -199,7 +189,6 @@
                 }
             }
 
-            // ===== Desktop Drag&Drop (ยังใช้ได้) =====
             tray.addEventListener('dragstart', (e) => {
                 const img = e.target.closest('img.charm');
                 if (!img) return;
@@ -228,7 +217,6 @@
                 addCharmPiece(src, x, y);
             });
 
-            // ===== Mobile Pointer Drag from Tray (แก้หลุด + กัน scroll) =====
             let ghost = null;
             let draggingSrc = null;
             let dragging = false;
@@ -304,13 +292,11 @@
 
                 moveGhost(e.clientX, e.clientY);
 
-                // ✅ ฟังที่ window เพื่อไม่ให้หลุดตอนลากออกจาก tray
                 window.addEventListener('pointermove', onMobileMove, { passive: false });
                 window.addEventListener('pointerup', onMobileUp, { passive: false });
                 window.addEventListener('pointercancel', onMobileCancel, { passive: false });
             }, { passive: false });
 
-            // ===== Create Charm Piece =====
             function addCharmPiece(src, x, y) {
                 const hint = board.querySelector('.boardHint');
                 if (hint) hint.style.display = 'none';
@@ -356,7 +342,6 @@
                 el.addEventListener('pointermove', () => { if (t) clearTimeout(t); t = null; }, { passive: true });
             }
 
-            // ===== Drag inside board (ใช้ได้ทั้ง charm และ base) =====
             function enableDragInsideBoard(piece, { isBase = false } = {}) {
                 let dragging = false;
                 let offsetX = 0, offsetY = 0;
@@ -409,7 +394,6 @@
                 });
             }
 
-            // ===== Actions =====
             document.getElementById('btnClear').addEventListener('click', () => {
                 board.querySelectorAll('.piece').forEach(n => n.remove());
                 baseLayer.innerHTML = '';

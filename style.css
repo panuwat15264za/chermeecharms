@@ -34,7 +34,6 @@ img {
     -webkit-user-drag: none;
 }
 
-/* TOP BAR */
 .ui {
     position: fixed;
     left: 0;
@@ -56,7 +55,6 @@ img {
     gap: 8px;
 }
 
-/* Pills */
 .pill {
     color: #fff;
     background: var(--panel);
@@ -70,7 +68,6 @@ img {
     -webkit-backdrop-filter: blur(6px);
 }
 
-/* Buttons */
 button {
     border: 0;
     border-radius: 10px;
@@ -87,7 +84,6 @@ button:active {
     transform: scale(.98);
 }
 
-/* Stage */
 .stage {
     position: fixed;
     inset: 0;
@@ -102,7 +98,6 @@ button:active {
     will-change: transform;
 }
 
-/* Flipbook */
 #flipbook {
     background: #fff;
     box-shadow: var(--shadow);
@@ -120,11 +115,9 @@ button:active {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    /* ถ้าไม่อยากครอป เปลี่ยนเป็น contain */
     display: block;
 }
 
-/* Bottom bar */
 .bottom {
     position: fixed;
     left: 0;
@@ -148,7 +141,6 @@ button:active {
     padding: 0;
 }
 
-/* Range slider */
 input[type="range"] {
     width: min(55vw, 420px);
     accent-color: #fff;
@@ -171,7 +163,6 @@ input[type="range"]::-webkit-slider-thumb {
     box-shadow: 0 6px 16px rgba(0, 0, 0, .35);
 }
 
-/* Mobile */
 @media (max-width:420px) {
     button {
         padding: 9px 10px;

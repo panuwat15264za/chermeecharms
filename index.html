@@ -18,10 +18,8 @@
 
     <link rel="stylesheet" href="style.css">
 
-    <!-- jQuery -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
 
-    <!-- ✅ Turn.js v3 (ตัวนี้มีจริงบน cdnjs) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/turn.js/3/turn.min.js"></script>
 </head>
 
@@ -88,12 +86,10 @@
             var $zoomWrap = $("#zoomWrap");
             var zoomed = false;
 
-            // นับหน้าจาก .page จริง
             var TOTAL = $fb.children(".page").length || 1;
             $tot.text(TOTAL);
             $slider.attr("max", TOTAL).val(1);
 
-            // A4 แนวตั้ง (ใกล้เคียง)
             var PAGE_RATIO = 0.707;
 
             function calcSize() {
@@ -106,15 +102,12 @@
             function updateUI(p) {
                 $cur.text(p);
                 $slider.val(p);
-                // ปิดปุ่มเมื่อสุดหน้า (กันกดแล้วเหมือนค้าง)
                 $("#prev").prop("disabled", p <= 1);
                 $("#next").prop("disabled", p >= TOTAL);
             }
 
-            // ✅ safe call แบบที่ใช้ได้กับ Turn.js v3
             function safeTurn(fn) {
                 if (typeof $.fn.turn !== "function") return false;
-                // ถ้ายังไม่ init จะไม่มี data('turned') ในหลาย build → ใช้ try/catch กันพังแทน
                 try { fn(); return true; } catch (e) { return false; }
             }
 
@@ -125,7 +118,6 @@
                     return;
                 }
 
-                // destroy ถ้ามี
                 try { $fb.turn("destroy"); } catch (e) { }
 
                 var s = calcSize();
@@ -139,12 +131,10 @@
                     gradients: true
                 });
 
-                // เริ่มหน้า 1
                 $fb.turn("page", 1);
                 updateUI(1);
             }
 
-            // ปุ่มก่อนหน้า/ถัดไป
             $("#prev").on("click", function () {
                 safeTurn(function () { $fb.turn("previous"); });
             });
@@ -153,21 +143,18 @@
                 safeTurn(function () { $fb.turn("next"); });
             });
 
-            // Slider ไปหน้าที่ต้องการ
             $slider.on("input change", function () {
                 var p = parseInt(this.value, 10) || 1;
                 safeTurn(function () { $fb.turn("page", p); });
                 updateUI(p);
             });
 
-            // ซูม
             $("#zoom").on("click", function () {
                 zoomed = !zoomed;
                 $zoomWrap.css("transform", zoomed ? "scale(1.2)" : "scale(1)");
                 $("#zoom").text(zoomed ? "ย่อ" : "ซูม");
             });
 
-            // อัปเดต UI ตอนพลิกหน้า (Turn.js จะยิง event นี้)
             $fb.on("turned", function (e, page) {
                 updateUI(page);
             });

@@ -27,10 +27,8 @@ body {
 
 img {
     user-select: none;
-    /* -webkit-user-drag: none; */
 }
 
-/* NAV */
 .topnav {
     position: fixed;
     top: 0;
@@ -75,7 +73,6 @@ img {
     border-color: transparent;
 }
 
-/* Buttons */
 button {
     border: 0;
     border-radius: 10px;
@@ -99,7 +96,6 @@ button.soft {
     box-shadow: none;
 }
 
-/* Layout */
 .productWrap {
     padding-top: calc(var(--navH) + 12px);
     padding-bottom: 18px;
@@ -133,7 +129,6 @@ button.soft {
     justify-content: flex-end;
 }
 
-/* Pill */
 .pill {
     color: #fff;
     background: var(--panel);
@@ -147,7 +142,6 @@ button.soft {
     -webkit-backdrop-filter: blur(6px);
 }
 
-/* Board */
 .board {
     position: relative;
     margin: 0 12px;
@@ -192,20 +186,15 @@ button.soft {
     opacity: .85;
 }
 
-/* Piece */
 .piece {
     position: absolute;
     width: 56px;
     height: 56px;
-    /* border-radius: 14px;
-    background: rgba(0, 0, 0, .18); */
-    /* border: 1px solid rgba(255, 255, 255, .14); */
     display: grid;
     place-items: center;
     cursor: grab;
     user-select: none;
     touch-action: none;
-    /* box-shadow: 0 10px 26px rgba(0, 0, 0, .35); */
 }
 
 .piece.active {
@@ -221,7 +210,6 @@ button.soft {
     pointer-events: none;
 }
 
-/* Tray */
 .tray {
     margin: 12px 12px 0;
     background: rgba(0, 0, 0, .28);
@@ -255,7 +243,6 @@ img.charm {
     width: 64px;
     height: 64px;
     object-fit: contain;
-    /* แนะนำ เพื่อไม่ครอป */
     background: transparent;
     border: 0;
     border-radius: 0;
@@ -268,9 +255,6 @@ img.charm:active {
     cursor: grabbing;
 }
 
-
-
-/* ===== Base selector ===== */
 .baseBar {
     margin: 8px 12px 10px;
     display: flex;
@@ -324,22 +308,17 @@ img.charm:active {
     filter: none;
 }
 
-/* baseLayer ต้องรับ pointer เพื่อให้ลาก base ได้ */
 .baseLayer {
     position: absolute;
     inset: 0;
     pointer-events: auto;
-    /* ✅ เปลี่ยนจาก none */
     z-index: 1;
-    /* อยู่หลังชาร์ม */
 }
 
-/* ชาร์ม (.piece) ให้อยู่เหนือ base เสมอ */
 .piece {
     z-index: 3;
 }
 
-/* ตัว base ที่ลากได้ */
 .basePiece {
     position: absolute;
     cursor: grab;
@@ -353,13 +332,11 @@ img.charm:active {
 
 .basePiece img {
     width: min(300px, 70%);
-    /* ✅ เล็กลง */
     height: auto;
     object-fit: contain;
     pointer-events: none;
 }
 
-/* กันบัคพวก select/ลากรูปบนมือถือ */
 #trayList,
 .board,
 .piece,
@@ -370,7 +347,6 @@ img.charm {
     -webkit-touch-callout: none;
 }
 
-/* ghost ตอนลากจาก tray บนมือถือ */
 .dragGhost {
     position: fixed;
     width: 52px;
@@ -382,7 +358,6 @@ img.charm {
     transform: translateZ(0);
 }
 
-/* มือถือปรับ layout ให้ไม่อึดอัด + ปุ่มไม่ล้น */
 /* @media (max-width: 520px) {
     .productTop {
         flex-direction: column;
@@ -438,27 +413,21 @@ html.lockScroll,
 body.lockScroll {
     height: 100%;
     overflow: hidden !important;
-    /* ✅ กันหน้าเลื่อนตอนลาก */
 }
 
-/* กัน bounce ของ iOS บางเครื่อง */
 body {
     overscroll-behavior-y: none;
 }
 
 @media (hover: none) and (pointer: coarse) {
 
-    /* 1) ล็อคหน้าไม่ให้เลื่อนแนวตั้ง */
     html,
     body {
         height: 100%;
         overflow: hidden;
-        /* ✅ กันหน้าเลื่อน */
         overscroll-behavior: none;
-        /* ✅ กันเด้ง iOS */
     }
 
-    /* ให้พื้นที่เนื้อหา “พอดีจอ” แบบ dvh (กัน address bar iOS) */
     .productWrap {
         min-height: 100dvh;
         height: 100dvh;
@@ -469,7 +438,6 @@ body {
         gap: 10px;
     }
 
-    /* 2) จัด layout ให้ไม่อึดอัด */
     .productTop {
         flex-direction: column;
         align-items: flex-start;
@@ -488,15 +456,12 @@ body {
         font-size: 13px;
     }
 
-    /* 3) ลดบอร์ดให้พอดีจอมือถือ */
     .board {
         margin: 0 12px;
         height: 230px;
-        /* ✅ เตี้ยลงให้ไม่ต้องเลื่อนหน้า */
         flex: 0 0 auto;
     }
 
-    /* 4) ส่วน tray/base ให้เลื่อนได้ “เฉพาะแนวนอน” */
     .tray,
     .baseBar {
         flex: 0 0 auto;
@@ -506,21 +471,16 @@ body {
     .baseList {
         overflow-x: auto;
         overflow-y: hidden;
-        /* ✅ ไม่ให้มี scroll แนวตั้ง */
         overscroll-behavior-x: contain;
         overscroll-behavior-y: none;
         touch-action: pan-x;
-        /* ✅ อนุญาตเฉพาะปาดซ้ายขวา */
         -webkit-overflow-scrolling: auto;
-        /* ✅ ลดโอกาสเด้ง/หลุดตอนลาก */
     }
 
-    /* 5) ตัว charm ต้อง “ไม่ให้ browser แย่ง gesture” */
     img.charm,
     .piece,
     .basePiece {
         touch-action: none;
-        /* ✅ ลากแล้วไม่เด้ง ไม่ scroll */
     }
 
     img.charm {
@@ -548,13 +508,11 @@ body {
         height: 38px;
     }
 
-    /* base ในบอร์ด (ถ้ารู้สึกใหญ่ไป ลดได้อีก) */
     .basePiece img {
         width: min(260px, 70%);
     }
 }
 
-/* Print save */
 @media print {
     body {
         background: #fff !important;

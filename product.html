@@ -157,7 +157,7 @@
                 basePiece.appendChild(img);
                 baseLayer.appendChild(basePiece);
 
-                enableDragInsideBoard(basePiece, { isBase: true });
+                enablePinchRotate(basePiece);
             }
 
             async function loadTrayFromJson() {
@@ -312,9 +312,9 @@
                 img.draggable = false;
 
                 piece.appendChild(img);
-                board.appendChild(piece);
+                baseLayer.appendChild(piece);
 
-                enableDragInsideBoard(piece, { isBase: false });
+                enablePinchRotate(piece);
 
                 piece.addEventListener('dblclick', () => removePiece(piece));
                 addLongPressToRemove(piece);
@@ -394,6 +394,60 @@
                 });
             }
 
+            function enablePinchRotate(el) {
+                let pointers = new Map();
+                let startDist = 0;
+                let startAngle = 0;
+                let startScale = 1;
+                let startRotate = 0;
+
+                el._transform = el._transform || { scale: 1, rotate: 0 };
+
+                function applyTransform() {
+                    el.style.transform =
+                        `scale(${el._transform.scale}) rotate(${el._transform.rotate}deg)`;
+                }
+
+                el.addEventListener('pointerdown', (e) => {
+                    pointers.set(e.pointerId, e);
+                    el.setPointerCapture(e.pointerId);
+
+                    if (pointers.size === 2) {
+                        const [p1, p2] = [...pointers.values()];
+                        startDist = Math.hypot(p2.clientX - p1.clientX, p2.clientY - p1.clientY);
+                        startAngle = Math.atan2(p2.clientY - p1.clientY, p2.clientX - p1.clientX);
+                        startScale = el._transform.scale;
+                        startRotate = el._transform.rotate;
+                    }
+                });
+
+                el.addEventListener('pointermove', (e) => {
+                    if (!pointers.has(e.pointerId)) return;
+                    pointers.set(e.pointerId, e);
+
+                    if (pointers.size === 2) {
+                        const [p1, p2] = [...pointers.values()];
+                        const dist = Math.hypot(p2.clientX - p1.clientX, p2.clientY - p1.clientY);
+                        const angle = Math.atan2(p2.clientY - p1.clientY, p2.clientX - p1.clientX);
+
+                        let scale = startScale * (dist / startDist);
+                        scale = Math.max(0.4, Math.min(scale, 3)); // จำกัดขนาด
+
+                        const rotate =
+                            startRotate + (angle - startAngle) * (180 / Math.PI);
+
+                        el._transform.scale = scale;
+                        el._transform.rotate = rotate;
+
+                        applyTransform();
+                    }
+                });
+
+                el.addEventListener('pointerup', (e) => pointers.delete(e.pointerId));
+                el.addEventListener('pointercancel', (e) => pointers.delete(e.pointerId));
+            }
+
+
             document.getElementById('btnClear').addEventListener('click', () => {
                 board.querySelectorAll('.piece').forEach(n => n.remove());
                 baseLayer.innerHTML = '';
@@ -421,7 +475,85 @@
                 });
             });
 
-            document.getElementById('btnSave').addEventListener('click', () => window.print());
+            document.getElementById('btnSave').addEventListener('click', exportBaseLayerPNG);
+
+            async function exportBaseLayerPNG() {
+                // export เฉพาะของใน baseLayer (รวม basePiece + ชาร์มที่ถูกย้ายมาอยู่ใน baseLayer)
+                const items = [...baseLayer.querySelectorAll('.basePiece, .piece')];
+
+                // ให้เซฟได้เสมอ → ถ้าไม่มีอะไรเลย เซฟเป็น PNG โปร่งใสขนาดเท่าบอร์ด
+                const boardRect = board.getBoundingClientRect();
+                const w = Math.round(boardRect.width);
+                const h = Math.round(boardRect.height);
+
+                const dpr = window.devicePixelRatio || 1;
+                const canvas = document.createElement('canvas');
+                canvas.width = w * dpr;
+                canvas.height = h * dpr;
+
+                const ctx = canvas.getContext('2d');
+                ctx.scale(dpr, dpr);
+
+                if (items.length) {
+                    // รอโหลดรูปให้ครบก่อนวาด
+                    const imgs = items.map(el => el.querySelector('img')).filter(Boolean);
+                    await Promise.all(imgs.map(ensureImageLoaded));
+
+                    // วาดตามลำดับ z-index (ถ้ามี) เพื่อให้ซ้อนถูก
+                    items.sort((a, b) => {
+                        const za = parseInt(a.style.zIndex || '0', 10);
+                        const zb = parseInt(b.style.zIndex || '0', 10);
+                        return za - zb;
+                    });
+
+                    for (const el of items) {
+                        const img = el.querySelector('img');
+                        if (!img) continue;
+
+                        const x = parseFloat(el.style.left || '0');
+                        const y = parseFloat(el.style.top || '0');
+
+                        // ใช้ขนาด element จริง (เช่น piece 56x56 / base ตามที่มันแสดง)
+                        const r = el.getBoundingClientRect();
+                        const drawW = r.width;
+                        const drawH = r.height;
+
+                        ctx.save();
+                        ctx.translate(x + drawW / 2, y + drawH / 2);
+                        const t = el._transform || { scale: 1, rotate: 0 };
+                        ctx.rotate(t.rotate * Math.PI / 180);
+                        ctx.scale(t.scale, t.scale);
+                        ctx.drawImage(img, -drawW / 2, -drawH / 2, drawW, drawH);
+                        ctx.restore();
+                    }
+                }
+
+                canvas.toBlob((blob) => {
+                    if (!blob) return;
+                    downloadBlob(blob, `baseLayer-${Date.now()}.png`);
+                }, 'image/png');
+            }
+
+
+            function ensureImageLoaded(img) {
+                if (img.complete && img.naturalWidth) return Promise.resolve();
+                return new Promise(res => {
+                    img.addEventListener('load', res, { once: true });
+                    img.addEventListener('error', res, { once: true });
+                });
+            }
+
+            function downloadBlob(blob, filename) {
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                URL.revokeObjectURL(url);
+            }
+
 
             // init
             loadTrayFromJson();

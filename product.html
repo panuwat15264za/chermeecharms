@@ -75,24 +75,6 @@
             // ===== Utils =====
             const isTouchLike = () => window.matchMedia('(pointer: coarse)').matches;
 
-            // ===== Lock/Unlock scroll (iOS fix) =====
-            let scrollYBeforeLock = 0;
-
-            function lockScroll() {
-                scrollYBeforeLock = window.scrollY || 0;
-                document.body.classList.add('lockScroll');
-                document.body.style.top = `-${scrollYBeforeLock}px`;
-            }
-
-            function unlockScroll() {
-                document.body.classList.remove('lockScroll');
-                const top = document.body.style.top;
-                document.body.style.top = '';
-                const y = top ? -parseInt(top, 10) : scrollYBeforeLock;
-                window.scrollTo(0, y);
-            }
-
-
             function getBoardXY(clientX, clientY) {
                 const rect = board.getBoundingClientRect();
                 return {
@@ -100,6 +82,25 @@
                     y: clientY - rect.top,
                     rect
                 };
+            }
+
+            // ===== Lock/Unlock scroll (iOS fix) =====
+            let scrollYBeforeLock = 0;
+            function lockScroll() {
+                scrollYBeforeLock = window.scrollY || 0;
+                document.documentElement.classList.add('lockScroll');
+                document.body.classList.add('lockScroll');
+                document.body.style.top = `-${scrollYBeforeLock}px`;
+            }
+
+            function unlockScroll() {
+                document.documentElement.classList.remove('lockScroll');
+                document.body.classList.remove('lockScroll');
+
+                const top = document.body.style.top;
+                document.body.style.top = '';
+                const y = top ? -parseInt(top, 10) : scrollYBeforeLock;
+                window.scrollTo(0, y);
             }
 
             // ===== Load Bases =====
@@ -121,8 +122,8 @@
                 } catch (err) {
                     console.error(err);
                     baseList.innerHTML = `<div style="color:rgba(255,255,255,.75);padding:6px 2px">
-              ไม่พบ bases.json หรือโหลดไม่ได้ — กรุณาเช็คว่า bases.json อยู่ข้างๆ product.html
-            </div>`;
+                  ไม่พบ bases.json หรือโหลดไม่ได้ — กรุณาเช็คว่า bases.json อยู่ข้างๆ product.html
+                </div>`;
                     baseLayer.innerHTML = '';
                 }
             }
@@ -153,7 +154,6 @@
                 const basePiece = document.createElement("div");
                 basePiece.className = "basePiece";
 
-                // ✅ ให้ใช้ left/top จริงตั้งแต่แรก (มือถือจะลากง่ายกว่า)
                 const br = board.getBoundingClientRect();
                 basePiece.style.left = (br.width / 2 - 150) + "px";
                 basePiece.style.top = (br.height / 2 - 80) + "px";
@@ -194,8 +194,8 @@
                 } catch (err) {
                     console.error(err);
                     tray.innerHTML = `<div style="color:rgba(255,255,255,.75);padding:10px">
-              ไม่พบ images.json หรือโหลดไม่ได้ — กรุณาเช็คว่า images.json อยู่ข้างๆ product.html
-            </div>`;
+                  ไม่พบ images.json หรือโหลดไม่ได้ — กรุณาเช็คว่า images.json อยู่ข้างๆ product.html
+                </div>`;
                 }
             }
 
@@ -228,52 +228,16 @@
                 addCharmPiece(src, x, y);
             });
 
-            // ===== Mobile Pointer Drag from Tray (ไม่บัค) =====
-            // แตะแล้วลากจาก tray -> ลอยตามนิ้ว -> ปล่อยบน board = วาง
+            // ===== Mobile Pointer Drag from Tray (แก้หลุด + กัน scroll) =====
             let ghost = null;
             let draggingSrc = null;
             let dragging = false;
-
-            tray.addEventListener('pointerdown', (e) => {
-                const img = e.target.closest('img.charm');
-                if (!img) return;
-
-                // ✅ มือถือเท่านั้น / desktop ไม่รบกวน drag&drop
-                if (!isTouchLike()) return;
-
-                e.preventDefault();
-                dragging = true;
-                draggingSrc = img.src;
-
-                // สร้าง ghost ให้เห็นตามนิ้ว
-                ghost = document.createElement('img');
-                ghost.src = draggingSrc;
-                ghost.className = 'dragGhost';
-                document.body.appendChild(ghost);
-
-                moveGhost(e.clientX, e.clientY);
-                tray.setPointerCapture(e.pointerId);
-                lockScroll(); 
-            });
-
-            tray.addEventListener('pointermove', (e) => {
-                if (!dragging || !ghost) return;
-                moveGhost(e.clientX, e.clientY);
-            });
-
-            tray.addEventListener('pointerup', (e) => {
-                if (!dragging) return;
-                finishMobileDrop(e.clientX, e.clientY);
-            });
-
-            tray.addEventListener('pointercancel', () => cleanupMobileDrag());
 
             function moveGhost(x, y) {
                 if (!ghost) return;
                 ghost.style.left = (x - 26) + 'px';
                 ghost.style.top = (y - 26) + 'px';
 
-                // highlight board เวลาอยู่เหนือ board
                 const br = board.getBoundingClientRect();
                 const inside = x >= br.left && x <= br.right && y >= br.top && y <= br.bottom;
                 board.classList.toggle('dragOver', inside);
@@ -296,8 +260,55 @@
                 board.classList.remove('dragOver');
                 if (ghost) ghost.remove();
                 ghost = null;
-                unlockScroll(); // ✅ ปลดล็อคเมื่อปล่อย/ยกเลิก
+
+                window.removeEventListener('pointermove', onMobileMove, { passive: false });
+                window.removeEventListener('pointerup', onMobileUp, { passive: false });
+                window.removeEventListener('pointercancel', onMobileCancel, { passive: false });
+
+                unlockScroll();
             }
+
+            function onMobileMove(e) {
+                if (!dragging) return;
+                e.preventDefault();
+                moveGhost(e.clientX, e.clientY);
+            }
+
+            function onMobileUp(e) {
+                if (!dragging) return;
+                e.preventDefault();
+                finishMobileDrop(e.clientX, e.clientY);
+            }
+
+            function onMobileCancel(e) {
+                if (!dragging) return;
+                e.preventDefault();
+                cleanupMobileDrag();
+            }
+
+            tray.addEventListener('pointerdown', (e) => {
+                const img = e.target.closest('img.charm');
+                if (!img) return;
+                if (!isTouchLike()) return;
+
+                e.preventDefault();
+                dragging = true;
+                draggingSrc = img.src;
+
+                lockScroll();
+
+                ghost = document.createElement('img');
+                ghost.src = draggingSrc;
+                ghost.className = 'dragGhost';
+                document.body.appendChild(ghost);
+
+                moveGhost(e.clientX, e.clientY);
+
+                // ✅ ฟังที่ window เพื่อไม่ให้หลุดตอนลากออกจาก tray
+                window.addEventListener('pointermove', onMobileMove, { passive: false });
+                window.addEventListener('pointerup', onMobileUp, { passive: false });
+                window.addEventListener('pointercancel', onMobileCancel, { passive: false });
+            }, { passive: false });
 
             // ===== Create Charm Piece =====
             function addCharmPiece(src, x, y) {
@@ -319,7 +330,6 @@
 
                 enableDragInsideBoard(piece, { isBase: false });
 
-                // ✅ มือถือไม่มี dblclick ง่าย ๆ -> รองรับทั้ง dblclick และ longpress ลบ
                 piece.addEventListener('dblclick', () => removePiece(piece));
                 addLongPressToRemove(piece);
             }
@@ -337,13 +347,13 @@
                 el.addEventListener('pointerdown', () => {
                     if (!isTouchLike()) return;
                     t = setTimeout(() => {
-                        // long press 600ms = ลบ
                         el.remove();
                     }, 600);
-                });
-                el.addEventListener('pointerup', () => { if (t) clearTimeout(t); t = null; });
-                el.addEventListener('pointercancel', () => { if (t) clearTimeout(t); t = null; });
-                el.addEventListener('pointermove', () => { if (t) clearTimeout(t); t = null; });
+                }, { passive: true });
+
+                el.addEventListener('pointerup', () => { if (t) clearTimeout(t); t = null; }, { passive: true });
+                el.addEventListener('pointercancel', () => { if (t) clearTimeout(t); t = null; }, { passive: true });
+                el.addEventListener('pointermove', () => { if (t) clearTimeout(t); t = null; }, { passive: true });
             }
 
             // ===== Drag inside board (ใช้ได้ทั้ง charm และ base) =====
@@ -352,7 +362,6 @@
                 let offsetX = 0, offsetY = 0;
 
                 piece.addEventListener('pointerdown', (e) => {
-                    // ✅ กันบัค scroll บนมือถือ
                     e.preventDefault();
 
                     if (isTouchLike()) lockScroll();
@@ -361,17 +370,16 @@
                     piece.setPointerCapture(e.pointerId);
                     piece.classList.add('active');
 
-                    const br = board.getBoundingClientRect();
                     const pr = piece.getBoundingClientRect();
-
                     offsetX = e.clientX - pr.left;
                     offsetY = e.clientY - pr.top;
 
                     if (isBase) piece.style.zIndex = 5;
-                });
+                }, { passive: false });
 
                 piece.addEventListener('pointermove', (e) => {
                     if (!dragging) return;
+                    e.preventDefault();
 
                     const br = board.getBoundingClientRect();
                     let nx = e.clientX - br.left - offsetX;
@@ -385,8 +393,8 @@
 
                     piece.style.left = nx + 'px';
                     piece.style.top = ny + 'px';
-                    piece.style.transform = ''; // เผื่อเคยมี translate
-                });
+                    piece.style.transform = '';
+                }, { passive: false });
 
                 piece.addEventListener('pointerup', () => {
                     dragging = false;
@@ -404,7 +412,7 @@
             // ===== Actions =====
             document.getElementById('btnClear').addEventListener('click', () => {
                 board.querySelectorAll('.piece').forEach(n => n.remove());
-                baseLayer.innerHTML = ''; // ✅ ล้าง base ด้วย
+                baseLayer.innerHTML = '';
                 [...baseList.querySelectorAll(".baseItem")].forEach(el => el.classList.remove("active"));
                 const hint = board.querySelector('.boardHint');
                 if (hint) hint.style.display = '';
@@ -436,8 +444,6 @@
             loadBaseFromJson();
         })();
     </script>
-
-
 </body>
 
 </html>

@@ -72,6 +72,19 @@
             let BASES = [];
             let selectedBase = null;
 
+            // ===== Utils =====
+            const isTouchLike = () => window.matchMedia('(pointer: coarse)').matches;
+
+            function getBoardXY(clientX, clientY) {
+                const rect = board.getBoundingClientRect();
+                return {
+                    x: clientX - rect.left,
+                    y: clientY - rect.top,
+                    rect
+                };
+            }
+
+            // ===== Load Bases =====
             async function loadBaseFromJson() {
                 try {
                     const res = await fetch('bases.json', { cache: 'no-store' });
@@ -87,19 +100,17 @@
                     }));
 
                     renderBaseList();
-
                 } catch (err) {
                     console.error(err);
                     baseList.innerHTML = `<div style="color:rgba(255,255,255,.75);padding:6px 2px">
-      ไม่พบ base.json หรือโหลดไม่ได้ — กรุณาเช็คว่า base.json อยู่ข้างๆ product.html
-    </div>`;
+              ไม่พบ bases.json หรือโหลดไม่ได้ — กรุณาเช็คว่า bases.json อยู่ข้างๆ product.html
+            </div>`;
                     baseLayer.innerHTML = '';
                 }
             }
 
             function renderBaseList() {
                 baseList.innerHTML = "";
-
                 BASES.forEach((b, idx) => {
                     const btn = document.createElement("button");
                     btn.type = "button";
@@ -108,9 +119,7 @@
                     btn.addEventListener("click", () => setBase(idx));
                     baseList.appendChild(btn);
                 });
-
-                // default เลือกอันแรกถ้ามี
-                // if (BASES.length) setBase(0);
+                // ✅ ไม่ต้องโชว์ base ก่อน กดเลือกค่อยขึ้น
             }
 
             function setBase(index) {
@@ -120,16 +129,16 @@
                     el.classList.toggle("active", i === index);
                 });
 
-                // ✅ สร้าง base แบบเป็นชิ้นที่ลากได้ (แยกจาก charm)
                 baseLayer.innerHTML = "";
-
                 if (!selectedBase) return;
 
                 const basePiece = document.createElement("div");
                 basePiece.className = "basePiece";
-                basePiece.style.left = "50%";
-                basePiece.style.top = "50%";
-                basePiece.style.transform = "translate(-50%, -50%)";
+
+                // ✅ ให้ใช้ left/top จริงตั้งแต่แรก (มือถือจะลากง่ายกว่า)
+                const br = board.getBoundingClientRect();
+                basePiece.style.left = (br.width / 2 - 150) + "px";
+                basePiece.style.top = (br.height / 2 - 80) + "px";
 
                 const img = document.createElement("img");
                 img.src = selectedBase.src;
@@ -139,10 +148,10 @@
                 basePiece.appendChild(img);
                 baseLayer.appendChild(basePiece);
 
-                enableDragInsideBoard(basePiece, true); // ✅ reuse drag function
+                enableDragInsideBoard(basePiece, { isBase: true });
             }
 
-            // ✅ โหลดรูปจาก images.json แล้วสร้าง <img> ให้ tray
+            // ===== Load Charms =====
             async function loadTrayFromJson() {
                 try {
                     const res = await fetch('images.json', { cache: 'no-store' });
@@ -157,7 +166,7 @@
                     files.forEach((name) => {
                         const img = document.createElement('img');
                         img.className = 'charm';
-                        img.draggable = true;
+                        img.draggable = !isTouchLike(); // ✅ มือถือไม่ใช้ drag html5
                         img.loading = 'lazy';
                         img.src = base + name;
                         img.alt = name;
@@ -172,7 +181,7 @@
                 }
             }
 
-            // drag จาก tray
+            // ===== Desktop Drag&Drop (ยังใช้ได้) =====
             tray.addEventListener('dragstart', (e) => {
                 const img = e.target.closest('img.charm');
                 if (!img) return;
@@ -197,14 +206,81 @@
                 const src = e.dataTransfer.getData('text/plain');
                 if (!src) return;
 
-                const rect = board.getBoundingClientRect();
-                const x = e.clientX - rect.left;
-                const y = e.clientY - rect.top;
-
-                addPiece(src, x, y);
+                const { x, y } = getBoardXY(e.clientX, e.clientY);
+                addCharmPiece(src, x, y);
             });
 
-            function addPiece(src, x, y) {
+            // ===== Mobile Pointer Drag from Tray (ไม่บัค) =====
+            // แตะแล้วลากจาก tray -> ลอยตามนิ้ว -> ปล่อยบน board = วาง
+            let ghost = null;
+            let draggingSrc = null;
+            let dragging = false;
+
+            tray.addEventListener('pointerdown', (e) => {
+                const img = e.target.closest('img.charm');
+                if (!img) return;
+
+                // ✅ มือถือเท่านั้น / desktop ไม่รบกวน drag&drop
+                if (!isTouchLike()) return;
+
+                e.preventDefault();
+                dragging = true;
+                draggingSrc = img.src;
+
+                // สร้าง ghost ให้เห็นตามนิ้ว
+                ghost = document.createElement('img');
+                ghost.src = draggingSrc;
+                ghost.className = 'dragGhost';
+                document.body.appendChild(ghost);
+
+                moveGhost(e.clientX, e.clientY);
+                tray.setPointerCapture(e.pointerId);
+            });
+
+            tray.addEventListener('pointermove', (e) => {
+                if (!dragging || !ghost) return;
+                moveGhost(e.clientX, e.clientY);
+            });
+
+            tray.addEventListener('pointerup', (e) => {
+                if (!dragging) return;
+                finishMobileDrop(e.clientX, e.clientY);
+            });
+
+            tray.addEventListener('pointercancel', () => cleanupMobileDrag());
+
+            function moveGhost(x, y) {
+                if (!ghost) return;
+                ghost.style.left = (x - 26) + 'px';
+                ghost.style.top = (y - 26) + 'px';
+
+                // highlight board เวลาอยู่เหนือ board
+                const br = board.getBoundingClientRect();
+                const inside = x >= br.left && x <= br.right && y >= br.top && y <= br.bottom;
+                board.classList.toggle('dragOver', inside);
+            }
+
+            function finishMobileDrop(clientX, clientY) {
+                const br = board.getBoundingClientRect();
+                const inside = clientX >= br.left && clientX <= br.right && clientY >= br.top && clientY <= br.bottom;
+
+                if (inside && draggingSrc) {
+                    const { x, y } = getBoardXY(clientX, clientY);
+                    addCharmPiece(draggingSrc, x, y);
+                }
+                cleanupMobileDrag();
+            }
+
+            function cleanupMobileDrag() {
+                dragging = false;
+                draggingSrc = null;
+                board.classList.remove('dragOver');
+                if (ghost) ghost.remove();
+                ghost = null;
+            }
+
+            // ===== Create Charm Piece =====
+            function addCharmPiece(src, x, y) {
                 const hint = board.querySelector('.boardHint');
                 if (hint) hint.style.display = 'none';
 
@@ -221,22 +297,44 @@
                 piece.appendChild(img);
                 board.appendChild(piece);
 
-                enableDragInsideBoard(piece);
+                enableDragInsideBoard(piece, { isBase: false });
 
-                piece.addEventListener('dblclick', () => {
-                    piece.remove();
-                    if (!board.querySelector('.piece')) {
-                        const hint2 = board.querySelector('.boardHint');
-                        if (hint2) hint2.style.display = '';
-                    }
-                });
+                // ✅ มือถือไม่มี dblclick ง่าย ๆ -> รองรับทั้ง dblclick และ longpress ลบ
+                piece.addEventListener('dblclick', () => removePiece(piece));
+                addLongPressToRemove(piece);
             }
 
-            function enableDragInsideBoard(piece, isBase = false) {
+            function removePiece(piece) {
+                piece.remove();
+                if (!board.querySelector('.piece')) {
+                    const hint2 = board.querySelector('.boardHint');
+                    if (hint2) hint2.style.display = '';
+                }
+            }
+
+            function addLongPressToRemove(el) {
+                let t = null;
+                el.addEventListener('pointerdown', () => {
+                    if (!isTouchLike()) return;
+                    t = setTimeout(() => {
+                        // long press 600ms = ลบ
+                        el.remove();
+                    }, 600);
+                });
+                el.addEventListener('pointerup', () => { if (t) clearTimeout(t); t = null; });
+                el.addEventListener('pointercancel', () => { if (t) clearTimeout(t); t = null; });
+                el.addEventListener('pointermove', () => { if (t) clearTimeout(t); t = null; });
+            }
+
+            // ===== Drag inside board (ใช้ได้ทั้ง charm และ base) =====
+            function enableDragInsideBoard(piece, { isBase = false } = {}) {
                 let dragging = false;
                 let offsetX = 0, offsetY = 0;
 
                 piece.addEventListener('pointerdown', (e) => {
+                    // ✅ กันบัค scroll บนมือถือ
+                    e.preventDefault();
+
                     dragging = true;
                     piece.setPointerCapture(e.pointerId);
                     piece.classList.add('active');
@@ -247,7 +345,6 @@
                     offsetX = e.clientX - pr.left;
                     offsetY = e.clientY - pr.top;
 
-                    // ✅ ถ้าเป็น base ให้ดันขึ้นมาอยู่หน้าสุดของ baseLayer
                     if (isBase) piece.style.zIndex = 5;
                 });
 
@@ -260,25 +357,31 @@
 
                     const w = piece.offsetWidth;
                     const h = piece.offsetHeight;
+
                     nx = Math.max(0, Math.min(nx, br.width - w));
                     ny = Math.max(0, Math.min(ny, br.height - h));
 
                     piece.style.left = nx + 'px';
                     piece.style.top = ny + 'px';
-
-                    // ✅ ถ้าเคยใช้ transform center ให้ปิดทิ้งตอนเริ่มลาก
-                    piece.style.transform = '';
+                    piece.style.transform = ''; // เผื่อเคยมี translate
                 });
 
                 piece.addEventListener('pointerup', () => {
                     dragging = false;
                     piece.classList.remove('active');
                 });
+
+                piece.addEventListener('pointercancel', () => {
+                    dragging = false;
+                    piece.classList.remove('active');
+                });
             }
 
-            // actions
+            // ===== Actions =====
             document.getElementById('btnClear').addEventListener('click', () => {
                 board.querySelectorAll('.piece').forEach(n => n.remove());
+                baseLayer.innerHTML = ''; // ✅ ล้าง base ด้วย
+                [...baseList.querySelectorAll(".baseItem")].forEach(el => el.classList.remove("active"));
                 const hint = board.querySelector('.boardHint');
                 if (hint) hint.style.display = '';
             });
@@ -304,11 +407,12 @@
 
             document.getElementById('btnSave').addEventListener('click', () => window.print());
 
-            // ✅ เรียกโหลดรูปตอนเริ่ม
+            // init
             loadTrayFromJson();
             loadBaseFromJson();
         })();
     </script>
+
 
 </body>
 

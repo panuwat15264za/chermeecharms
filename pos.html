@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="th">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Cheŕmee charm | ระบบคิดเงิน</title>
+
+    <!-- ✅ ใส่ CSS ของ POS -->
+    <link rel="stylesheet" href="pos.css" />
+</head>
+
+<body class="posPage">
+    <main class="wrap">
+        <!-- ตะกร้า -->
+        <section class="pos">
+            <div class="posHead">
+                <div class="pill">ตะกร้าสินค้า</div>
+                <button id="btnClearCart" class="soft">ล้างตะกร้า</button>
+            </div>
+
+            <div id="cartList" class="cartList"></div>
+
+            <div class="posTotal">
+                <div>
+                    <div class="muted">รวมทั้งหมด</div>
+                    <div id="totalItems" class="mini">0 รายการ</div>
+                </div>
+                <div id="totalPrice" class="totalPrice">0.-</div>
+            </div>
+        </section>
+
+        <!-- สินค้า -->
+        <section class="panel">
+            <div id="productGrid" class="grid"></div>
+            <div id="productEmpty" class="empty" style="display:none;">ไม่พบสินค้า</div>
+        </section>
+    </main>
+
+    <!-- ✅ วาง script ก่อนปิด body -->
+    <script>
+        (() => {
+            const $grid = document.getElementById("productGrid");
+            const $empty = document.getElementById("productEmpty");
+
+            const $cartList = document.getElementById("cartList");
+            const $totalPrice = document.getElementById("totalPrice");
+            const $totalItems = document.getElementById("totalItems");
+            const $btnClearCart = document.getElementById("btnClearCart");
+
+            const CART_KEY = "CHERME_POS_CART_V1";
+
+            let basePath = "charm/";
+            let items = [];
+            let filtered = [];
+
+            let cart = loadCart();
+
+            function loadCart() {
+                try {
+                    const raw = localStorage.getItem(CART_KEY);
+                    return raw ? JSON.parse(raw) : {};
+                } catch {
+                    return {};
+                }
+            }
+
+            function saveCart() {
+                localStorage.setItem(CART_KEY, JSON.stringify(cart));
+            }
+
+            function toNumberPrice(p) {
+                if (p === null || p === undefined) return 0;
+                const s = String(p).trim();
+                if (!s) return 0;
+                const cleaned = s.replace(/[^\d.]/g, "");
+                const n = Number(cleaned);
+                return Number.isFinite(n) ? n : 0;
+            }
+
+            function formatBaht(n) {
+                const num = Number(n) || 0;
+                if (Number.isInteger(num)) return `${num}.-`;
+                return `${num.toFixed(2)}.-`;
+            }
+
+            function getCategoryFromFile(file) {
+                const m = String(file).trim().match(/^([A-Za-z])\s*\(/);
+                return m ? m[1].toUpperCase() : "";
+            }
+
+            async function loadItems() {
+                const res = await fetch("item.json", { cache: "no-store" });
+                if (!res.ok) throw new Error("โหลด item.json ไม่ได้");
+                const data = await res.json();
+
+                basePath = data.basePath || "charm/";
+                items = Array.isArray(data.items) ? data.items : [];
+
+                items = items
+                    .map((it) => ({
+                        file: it.file,
+                        name: it.name ?? "",
+                        price: it.price ?? "",
+                        _cat: getCategoryFromFile(it.file),
+                        _priceNum: toNumberPrice(it.price),
+                    }))
+                    .filter((it) => !!it.file);
+
+                filtered = items;
+                renderGrid();
+                renderCart();
+            }
+
+            function renderGrid() {
+                $grid.innerHTML = "";
+                $empty.style.display = filtered.length ? "none" : "block";
+
+                for (const it of filtered) {
+                    const card = document.createElement("button");
+                    card.type = "button";
+                    card.className = "pCard";
+                    card.title = "กดเพื่อเพิ่มลงตะกร้า";
+                    card.dataset.file = it.file; // ✅ เอาไว้ค้นหา
+
+                    const imgSrc = basePath + it.file;
+                    const displayName = it.name && String(it.name).trim() ? it.name : it.file;
+
+                    card.innerHTML = `<img src="${imgSrc}" alt="${escapeHtml(displayName)}">`;
+
+                    card.addEventListener("click", () => addToCart(it));
+                    $grid.appendChild(card);
+                }
+            }
+
+            function scrollToProduct(file) {
+                const cards = [...$grid.querySelectorAll(".pCard")];
+                const target = cards.find(el => el.dataset.file === file);
+                if (!target) return;
+
+                target.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" });
+
+                // กระพริบ 2 ครั้ง แล้วเอาออก (ไม่ค้าง)
+                target.classList.remove("blink2");
+                void target.offsetWidth; // force reflow
+                target.classList.add("blink2");
+
+                const onEnd = () => {
+                    target.classList.remove("blink2");
+                    target.removeEventListener("animationend", onEnd);
+                };
+                target.addEventListener("animationend", onEnd);
+            }
+
+
+            function cssEscape(s) {
+                return String(s).replace(/["\\]/g, "\\$&");
+            }
+
+            function addToCart(it) {
+                const key = it.file;
+
+                if (!cart[key]) {
+                    cart[key] = { file: it.file, name: it.name ?? "", price: it.price ?? "", qty: 1 };
+                } else {
+                    cart[key].qty += 1;
+                }
+
+                saveCart();
+                renderCart();
+            }
+
+            function changeQty(file, delta) {
+                const row = cart[file];
+                if (!row) return;
+
+                row.qty += delta;
+                if (row.qty <= 0) delete cart[file];
+
+                saveCart();
+                renderCart();
+            }
+
+            function removeItem(file) {
+                delete cart[file];
+                saveCart();
+                renderCart();
+            }
+
+            function clearCart() {
+                cart = {};
+                saveCart();
+                renderCart();
+            }
+
+            function renderCart() {
+                $cartList.innerHTML = "";
+
+                const keys = Object.keys(cart);
+                if (!keys.length) {
+                    $cartList.innerHTML = `<div class="muted" style="padding:8px 2px;">ยังไม่มีสินค้าในตะกร้า</div>`;
+                    $totalPrice.textContent = "0.-";
+                    $totalItems.textContent = "0 รายการ";
+                    return;
+                }
+
+                let total = 0;
+                let totalQty = 0;
+
+                for (const k of keys) {
+                    const row = cart[k];
+                    const name = row.name && String(row.name).trim() ? row.name : row.file;
+
+                    const priceNum = toNumberPrice(row.price);
+                    total += priceNum * (row.qty || 0);
+                    totalQty += row.qty || 0;
+
+                    const el = document.createElement("div");
+                    el.className = "cartRowSimple";
+                    el.innerHTML = `
+                        <button type="button" class="cartNameBtn" title="ไปยังสินค้า">
+                            ${escapeHtml(name)} <span class="muted">x${row.qty || 0}</span>
+                        </button>
+                        <button class="cartRemove" title="ลบ">ลบ</button>
+                    `;
+
+                    el.querySelector(".cartRemove").addEventListener("click", () => removeItem(row.file));
+                    el.querySelector(".cartNameBtn").addEventListener("click", () => scrollToProduct(row.file));
+                    $cartList.appendChild(el);
+                }
+
+                $totalPrice.textContent = formatBaht(total);
+                $totalItems.textContent = `${totalQty} ชิ้น`;
+            }
+
+
+            function escapeHtml(s) {
+                return String(s ?? "")
+                    .replaceAll("&", "&amp;")
+                    .replaceAll("<", "&lt;")
+                    .replaceAll(">", "&gt;")
+                    .replaceAll('"', "&quot;")
+                    .replaceAll("'", "&#039;");
+            }
+
+            $btnClearCart.addEventListener("click", clearCart);
+
+            loadItems().catch((err) => {
+                console.error(err);
+                $grid.innerHTML = "";
+                $empty.style.display = "block";
+                $empty.textContent = "โหลด item.json ไม่ได้ — เช็คว่า item.json อยู่ข้างๆ pos.html";
+            });
+        })();
+    </script>
+</body>
+
+</html>

@@ -100,6 +100,7 @@
                 items = items
                     .map((it) => ({
                         file: it.file,
+                        path: it.path ?? "",
                         name: it.name ?? "",
                         price: it.price ?? "",
                         _cat: getCategoryFromFile(it.file),
@@ -123,7 +124,7 @@
                     card.title = "กดเพื่อเพิ่มลงตะกร้า";
                     card.dataset.file = it.file; // ✅ เอาไว้ค้นหา
 
-                    const imgSrc = basePath + it.file;
+                    const imgSrc = (it.path ? it.path : basePath) + it.file;
                     const displayName = it.name && String(it.name).trim() ? it.name : it.file;
 
                     card.innerHTML = `<img src="${imgSrc}" alt="${escapeHtml(displayName)}">`;
@@ -134,15 +135,13 @@
             }
 
             function scrollToProduct(file) {
-                const cards = [...$grid.querySelectorAll(".pCard")];
-                const target = cards.find(el => el.dataset.file === file);
+                const target = $grid.querySelector(`.pCard[data-file="${cssEscape(file)}"]`);
                 if (!target) return;
 
                 target.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" });
 
-                // กระพริบ 2 ครั้ง แล้วเอาออก (ไม่ค้าง)
                 target.classList.remove("blink2");
-                void target.offsetWidth; // force reflow
+                void target.offsetWidth;
                 target.classList.add("blink2");
 
                 const onEnd = () => {
@@ -151,7 +150,6 @@
                 };
                 target.addEventListener("animationend", onEnd);
             }
-
 
             function cssEscape(s) {
                 return String(s).replace(/["\\]/g, "\\$&");

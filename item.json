@@ -120,6 +120,17 @@
     { "file": "E (10).PNG", "name": "", "price": 49 },
     { "file": "E (11).PNG", "name": "", "price": 49 },
     { "file": "E (12).PNG", "name": "", "price": 49 },
-    { "file": "E (13).PNG", "name": "", "price": 49 }
+    { "file": "E (13).PNG", "name": "", "price": 49 },
+
+    { "file": "Clock (1).PNG", "path": "clock/", "name": "", "price": 349 },
+    { "file": "Clock (2).PNG", "path": "clock/", "name": "", "price": 349 },
+    { "file": "Clock (3).PNG", "path": "clock/", "name": "", "price": 349 },
+    { "file": "Clock (4).PNG", "path": "clock/", "name": "", "price": 349 },
+    { "file": "Clock (5).PNG", "path": "clock/", "name": "", "price": 349 },
+    { "file": "Clock (6).PNG", "path": "clock/", "name": "", "price": 349 },
+    { "file": "Clock (7).PNG", "path": "clock/", "name": "", "price": 349 },
+    { "file": "Clock (8).PNG", "path": "clock/", "name": "", "price": 349 },
+    { "file": "Clock (9).PNG", "path": "clock/", "name": "", "price": 349 },
+    { "file": "Clock (10).PNG", "path": "clock/", "name": "", "price": 349 }
   ]
 }

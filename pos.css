@@ -178,23 +178,25 @@ body {
     opacity: .85;
 }
 
-@keyframes blink2 {
+.pCard.blink2 {
+    animation: blink2 0.6s ease-in-out 2;
+}
 
-    0%,
-    100% {
-        transform: scale(1);
-        outline-color: transparent;
+@keyframes blink2 {
+    0% {
+        box-shadow: 0 0 0 0 rgba(255, 255, 255, .0);
+        transform: translateZ(0) scale(1);
     }
 
     50% {
-        transform: scale(1.03);
-        outline-color: rgba(255, 255, 255, .9);
+        box-shadow: 0 0 0 6px rgba(255, 255, 255, .35);
+        transform: translateZ(0) scale(1.02);
     }
-}
 
-.pCard.blink2 {
-    outline: 3px solid rgba(255, 255, 255, .9);
-    animation: blink2 .25s ease-in-out 2;
+    100% {
+        box-shadow: 0 0 0 0 rgba(255, 255, 255, .0);
+        transform: translateZ(0) scale(1);
+    }
 }
 
 @media (max-width: 920px) {

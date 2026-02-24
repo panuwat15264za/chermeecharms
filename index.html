@@ -53,8 +53,9 @@
     <script>
         (function () {
             var PAGES_DIR = "pages/";
-            var PAGES_TOTAL = 26;                 // ✅ จำนวนหน้า
-            var PAGES_PATTERN = "1 (%n).webp";    // ✅ ชื่อไฟล์: 1 (1).webp ... 1 (26).webp
+            var PAGES_TOTAL = 26;
+            var PAGES_PATTERN = "1 (%n).png";   // ✅ ให้ตรงกับไฟล์ 1(1).png, 1(2).png ...
+            var START_AT = 0;
 
             var $fb = $("#flipbook");
             var $cur = $("#cur");
@@ -88,7 +89,7 @@
 
             function buildPages() {
                 $fb.empty();
-                for (var i = 1; i <= PAGES_TOTAL; i++) {
+                for (var i = START_AT; i < START_AT + PAGES_TOTAL; i++) {
                     var file = PAGES_PATTERN.replace("%n", i);
                     var src = PAGES_DIR + file;
                     var $page = $('<div class="page"><img loading="lazy" decoding="async" src="' + src + '" alt=""></div>');

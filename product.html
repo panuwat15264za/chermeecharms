@@ -562,8 +562,17 @@
 
                     const w = el.offsetWidth;
                     const h = el.offsetHeight;
-                    nx = clamp(nx, 0, cr.width - w);
-                    ny = clamp(ny, 0, cr.height - h);
+
+                    // ให้ basePiece (นาฬิกา) ออกนอกกรอบได้ ~45% เพื่อขยับอิสระขึ้น
+                    const overflow = el.classList.contains('basePiece') ? 0.45 : 0;
+
+                    const minX = -w * overflow;
+                    const maxX = cr.width - w * (1 - overflow);
+                    const minY = -h * overflow;
+                    const maxY = cr.height - h * (1 - overflow);
+
+                    nx = clamp(nx, minX, maxX);
+                    ny = clamp(ny, minY, maxY);
 
                     el.style.left = nx + "px";
                     el.style.top = ny + "px";

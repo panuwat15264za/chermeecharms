@@ -212,9 +212,6 @@ button.soft {
 
 .tray {
     margin: 12px 12px 0;
-    /* background: rgba(0, 0, 0, .28);
-    border: 1px solid rgba(255, 255, 255, .10); */
-    /* border-radius: 18px; */
     overflow: hidden;
 }
 
@@ -227,14 +224,12 @@ button.soft {
     gap: 12px;
     overflow-x: auto;
     overflow-y: hidden;
-    /* padding: 12px 14px; */
     scroll-snap-type: x mandatory;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior-x: contain;
     position: relative;
 }
 
-/* แถบเลื่อม/ไฮไลท์ด้านล่าง */
 .trayList::after {
     content: "";
     position: sticky;
@@ -266,7 +261,6 @@ button.soft {
     scroll-snap-align: start;
     width: 72px;
     height: 86px;
-    /* เพิ่มความสูงนิดนึงให้มีที่วางราคา */
     border-radius: 16px;
     border: 1px solid rgba(255, 255, 255, .14);
     background: rgba(255, 255, 255, .06);
@@ -288,7 +282,6 @@ button.soft {
 
 .tagPrice {
     position: static;
-    /* สำคัญ: เลิก absolute */
     font-size: 11px;
     padding: 3px 8px;
     border-radius: 999px;
@@ -296,14 +289,15 @@ button.soft {
     border: 1px solid rgba(255, 255, 255, .16);
     line-height: 1;
     color: #fff;
+
+    /* ซ่อนราคา */
+    display: none !important;
 }
 
 /* ===== Price bar ===== */
 .priceBar {
     padding: 8px 12px;
-    /* จาก 12px 14px → เล็กลง */
     border-radius: 14px;
-    /* จาก 18px → เล็กลง */
     border: 1px solid rgba(255, 255, 255, .10);
     background: rgba(255, 255, 255, .05);
     display: flex;

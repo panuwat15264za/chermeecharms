@@ -212,9 +212,9 @@ button.soft {
 
 .tray {
     margin: 12px 12px 0;
-    background: rgba(0, 0, 0, .28);
-    border: 1px solid rgba(255, 255, 255, .10);
-    border-radius: 18px;
+    /* background: rgba(0, 0, 0, .28);
+    border: 1px solid rgba(255, 255, 255, .10); */
+    /* border-radius: 18px; */
     overflow: hidden;
 }
 
@@ -224,19 +224,111 @@ button.soft {
 
 .trayList {
     display: flex;
-    gap: 10px;
-    padding: 10px;
+    gap: 12px;
     overflow-x: auto;
+    overflow-y: hidden;
+    /* padding: 12px 14px; */
+    scroll-snap-type: x mandatory;
     -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+    position: relative;
+}
+
+/* แถบเลื่อม/ไฮไลท์ด้านล่าง */
+.trayList::after {
+    content: "";
+    position: sticky;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 10px;
+    margin-top: -10px;
+    pointer-events: none;
+    background: linear-gradient(to bottom,
+            transparent,
+            rgba(255, 255, 255, .14),
+            transparent);
+    opacity: .75;
 }
 
 .trayList::-webkit-scrollbar {
-    height: 8px;
+    height: 10px;
 }
 
 .trayList::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, .18);
+    background: rgba(255, 255, 255, .22);
     border-radius: 999px;
+}
+
+.trayItem {
+    position: relative;
+    flex: 0 0 auto;
+    scroll-snap-align: start;
+    width: 72px;
+    height: 86px;
+    /* เพิ่มความสูงนิดนึงให้มีที่วางราคา */
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, .14);
+    background: rgba(255, 255, 255, .06);
+    box-shadow: 0 8px 22px rgba(0, 0, 0, .25);
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 8px;
+}
+
+.trayItem img {
+    width: 100%;
+    height: 50px;
+    object-fit: contain;
+}
+
+.tagPrice {
+    position: static;
+    /* สำคัญ: เลิก absolute */
+    font-size: 11px;
+    padding: 3px 8px;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, .45);
+    border: 1px solid rgba(255, 255, 255, .16);
+    line-height: 1;
+    color: #fff;
+}
+
+/* ===== Price bar ===== */
+.priceBar {
+    padding: 8px 12px;
+    /* จาก 12px 14px → เล็กลง */
+    border-radius: 14px;
+    /* จาก 18px → เล็กลง */
+    border: 1px solid rgba(255, 255, 255, .10);
+    background: rgba(255, 255, 255, .05);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.priceTitle {
+    font-size: 11px;
+    /* จาก 12px */
+    opacity: .75;
+}
+
+.priceTotal {
+    font-size: 18px;
+    /* จาก 22px */
+    font-weight: 700;
+    line-height: 1.1;
+}
+
+.priceMeta {
+    font-size: 11px;
+    /* จาก 12px */
+    opacity: .8;
 }
 
 img.charm {

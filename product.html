@@ -13,22 +13,32 @@
     <nav class="topnav">
         <a class="brand" href="index.html">Cheŕmee charm</a>
         <div class="links">
-            <a href="index.html">Lookbook</a>
-            <a class="active" href="product.html">ออกแบบสร้อย</a>
+            <a href="index.html">ชาร์ม</a>
+            <a class="active" href="product.html">ออกแบบ</a>
         </div>
     </nav>
 
     <div class="productWrap">
         <div class="productTop">
             <div class="productTitle">
-                <h1>ลองเรียงชาร์มเป็นสร้อย</h1>
-                <p>ลากรูปด้านล่างขึ้นมาวางบนกระดาน • ลากชิ้นงานเพื่อขยับ • ดับเบิลคลิกลบ</p>
+                <!-- <h1>ลองเรียงชาร์มเป็นสร้อย</h1>
+                <p>ลากรูปด้านล่างขึ้นมาวางบนกระดาน • ลากชิ้นงานเพื่อขยับ • ดับเบิลคลิกลบ</p> -->
             </div>
 
             <div class="productActions">
                 <button id="btnCenter" class="soft">จัดเรียงกลาง</button>
                 <button id="btnClear" class="soft">ล้างทั้งหมด</button>
                 <button id="btnSave">บันทึกรูป</button>
+            </div>
+
+            <div class="priceBar" id="priceBar">
+                <div class="priceLeft">
+                    <div class="priceTitle">ราคารวม</div>
+                    <div class="priceTotal"><span id="totalPrice">0</span> ฿</div>
+                </div>
+                <div class="priceRight">
+                    <div class="priceMeta">ชาร์ม <span id="totalCount">0</span> ชิ้น</div>
+                </div>
             </div>
         </div>
 
@@ -72,8 +82,26 @@
 
             let BASES = [];
             let selectedBase = null;
+            let selectedBasePrice = 0;
 
             const isTouchLike = () => window.matchMedia('(pointer: coarse)').matches;
+
+            const totalPriceEl = document.getElementById('totalPrice');
+            const totalCountEl = document.getElementById('totalCount');
+
+            function formatMoney(n) {
+                return (Number(n) || 0).toLocaleString('th-TH');
+            }
+
+            function updateTotals() {
+                const pieces = [...baseLayer.querySelectorAll('.piece')];
+                const charmTotal = pieces.reduce((sum, p) => sum + (Number(p._price) || 0), 0);
+
+                const total = charmTotal + (Number(selectedBasePrice) || 0);
+
+                if (totalPriceEl) totalPriceEl.textContent = formatMoney(total);
+                if (totalCountEl) totalCountEl.textContent = pieces.length;
+            }
 
             let activeEl = null;
             const ui = document.getElementById('transformUI');
@@ -138,25 +166,33 @@
 
             async function loadBaseFromJson() {
                 try {
-                    const res = await fetch('bases.json', { cache: 'no-store' });
-                    if (!res.ok) throw new Error('โหลด bases.json ไม่สำเร็จ: ' + res.status);
+                    const res = await fetch('item.json', { cache: 'no-store' });
+                    if (!res.ok) throw new Error('โหลด item.json ไม่สำเร็จ: ' + res.status);
 
                     const data = await res.json();
                     const basePath = data.basePath || '';
-                    const files = Array.isArray(data.files) ? data.files : [];
+                    const items = Array.isArray(data.items) ? data.items : [];
 
-                    BASES = files.map((name, i) => ({
-                        name: `Base ${i + 1}`,
-                        src: basePath + name
-                    }));
+                    // ✅ เอาเฉพาะ Clock (ตาม json ของคุณมี path: "clock/")
+                    BASES = items
+                        .filter(it => (it.path && String(it.path).toLowerCase().includes('clock')) ||
+                            String(it.file || '').toLowerCase().startsWith('clock'))
+                        .map((it, i) => {
+                            const path = (it.path || basePath || '');
+                            return {
+                                name: (it.name && String(it.name).trim()) ? it.name : `Clock ${i + 1}`,
+                                src: path + it.file,
+                                price: Number(it.price || 0),
+                            };
+                        });
 
                     renderBaseList();
                 } catch (err) {
                     console.error(err);
                     baseList.innerHTML = `<div style="color:rgba(255,255,255,.75);padding:6px 2px">
-                  ไม่พบ bases.json หรือโหลดไม่ได้ — กรุณาเช็คว่า bases.json อยู่ข้างๆ product.html
-                </div>`;
-                    baseLayer.innerHTML = '';
+      ไม่พบ item.json หรือโหลดไม่ได้ — กรุณาเช็คว่า item.json อยู่ข้างๆ product.html
+    </div>`;
+                    BASES = [];
                 }
             }
 
@@ -174,13 +210,20 @@
 
             function setBase(index) {
                 selectedBase = BASES[index];
+                selectedBasePrice = Number(selectedBase?.price || 0); // ✅ เพิ่ม
 
                 [...baseList.querySelectorAll(".baseItem")].forEach((el, i) => {
                     el.classList.toggle("active", i === index);
                 });
 
-                baseLayer.innerHTML = "";
-                if (!selectedBase) return;
+                // ลบ base เก่าออก แต่ไม่ลบชาร์ม
+                baseLayer.querySelectorAll('.basePiece').forEach(n => n.remove());
+
+                if (!selectedBase) {
+                    selectedBasePrice = 0;
+                    updateTotals();
+                    return;
+                }
 
                 const basePiece = document.createElement("div");
                 basePiece.className = "basePiece";
@@ -203,44 +246,57 @@
                     showTransformUI(basePiece);
                 });
 
+                updateTotals(); // ✅ เพิ่ม
             }
 
             async function loadTrayFromJson() {
                 try {
-                    const res = await fetch('images.json', { cache: 'no-store' });
-                    if (!res.ok) throw new Error('โหลด images.json ไม่สำเร็จ: ' + res.status);
+                    const res = await fetch('item.json', { cache: 'no-store' });
+                    if (!res.ok) throw new Error('โหลด item.json ไม่สำเร็จ: ' + res.status);
 
                     const data = await res.json();
-                    const base = data.basePath || '';
-                    const files = Array.isArray(data.files) ? data.files : [];
+                    const basePath = data.basePath || '';
+                    const items = Array.isArray(data.items) ? data.items : [];
 
                     tray.innerHTML = '';
 
-                    files.forEach((name) => {
-                        const img = document.createElement('img');
-                        img.className = 'charm';
-                        img.draggable = !isTouchLike();
-                        img.loading = 'lazy';
-                        img.src = base + name;
-                        img.alt = name;
-                        tray.appendChild(img);
+                    items.forEach((it) => {
+                        const path = (it.path || basePath || '');
+                        const src = path + it.file;
+                        const price = Number(it.price || 0);
+                        const label = (it.name && String(it.name).trim()) ? it.name : it.file;
+
+                        const btn = document.createElement('button');
+                        btn.type = 'button';
+                        btn.className = 'trayItem';
+                        btn.dataset.src = src;
+                        btn.dataset.price = String(price);
+                        btn.dataset.name = label;
+
+                        btn.innerHTML = `
+        <img class="charm" draggable="${!isTouchLike()}" loading="lazy" src="${src}" alt="${label}">
+        <div class="tagPrice">${formatMoney(price)} ฿</div>
+      `;
+
+                        tray.appendChild(btn);
                     });
 
                 } catch (err) {
                     console.error(err);
                     tray.innerHTML = `<div style="color:rgba(255,255,255,.75);padding:10px">
-                  ไม่พบ images.json หรือโหลดไม่ได้ — กรุณาเช็คว่า images.json อยู่ข้างๆ product.html
-                </div>`;
+      ไม่พบ item.json หรือโหลดไม่ได้ — กรุณาเช็คว่า item.json อยู่ข้างๆ product.html
+    </div>`;
                 }
             }
 
             tray.addEventListener('dragstart', (e) => {
-                const img = e.target.closest('img.charm');
-                if (!img) return;
+                const item = e.target.closest('.trayItem');
+                if (!item) return;
 
                 e.dataTransfer.effectAllowed = 'copy';
-                e.dataTransfer.setData('text/plain', img.src);
-                e.dataTransfer.setData('text/uri-list', img.src);
+                e.dataTransfer.setData('text/plain', item.dataset.src);
+                e.dataTransfer.setData('text/uri-list', item.dataset.src);
+                e.dataTransfer.setData('application/x-charm-price', item.dataset.price || '0');
             });
 
             board.addEventListener('dragover', (e) => {
@@ -258,8 +314,10 @@
                 const src = e.dataTransfer.getData('text/plain');
                 if (!src) return;
 
+                const price = Number(e.dataTransfer.getData('application/x-charm-price') || 0);
+
                 const { x, y } = getBoardXY(e.clientX, e.clientY);
-                addCharmPiece(src, x, y);
+                addCharmPiece(src, x, y, price);
             });
 
             board.addEventListener('pointerdown', () => {
@@ -268,6 +326,7 @@
 
             let ghost = null;
             let draggingSrc = null;
+            let draggingPrice = 0;
             let dragging = false;
 
             function moveGhost(x, y) {
@@ -286,7 +345,7 @@
 
                 if (inside && draggingSrc) {
                     const { x, y } = getBoardXY(clientX, clientY);
-                    addCharmPiece(draggingSrc, x, y);
+                    addCharmPiece(draggingSrc, x, y, draggingPrice);
                 }
                 cleanupMobileDrag();
             }
@@ -324,13 +383,14 @@
             }
 
             tray.addEventListener('pointerdown', (e) => {
-                const img = e.target.closest('img.charm');
-                if (!img) return;
+                const item = e.target.closest('.trayItem');
+                if (!item) return;
                 if (!isTouchLike()) return;
 
                 e.preventDefault();
                 dragging = true;
-                draggingSrc = img.src;
+                draggingSrc = item.dataset.src;
+                draggingPrice = Number(item.dataset.price || 0);
 
                 lockScroll();
 
@@ -346,7 +406,7 @@
                 window.addEventListener('pointercancel', onMobileCancel, { passive: false });
             }, { passive: false });
 
-            function addCharmPiece(src, x, y) {
+            function addCharmPiece(src, x, y, price = 0) {
                 const hint = board.querySelector('.boardHint');
                 if (hint) hint.style.display = 'none';
 
@@ -354,6 +414,8 @@
                 piece.className = 'piece';
                 piece.style.left = (x - 28) + 'px';
                 piece.style.top = (y - 28) + 'px';
+
+                piece._price = Number(price || 0);
 
                 const img = document.createElement('img');
                 img.src = src;
@@ -372,6 +434,8 @@
                     e.stopPropagation();
                     showTransformUI(piece);
                 });
+
+                updateTotals();
             }
 
             function removePiece(piece) {
@@ -380,6 +444,7 @@
                     const hint2 = board.querySelector('.boardHint');
                     if (hint2) hint2.style.display = '';
                 }
+                updateTotals();
             }
 
             function addLongPressToRemove(el) {
@@ -387,7 +452,7 @@
                 el.addEventListener('pointerdown', () => {
                     if (!isTouchLike()) return;
                     t = setTimeout(() => {
-                        el.remove();
+                        removePiece(el);
                     }, 600);
                 }, { passive: true });
 
@@ -557,9 +622,15 @@
             document.getElementById('btnClear').addEventListener('click', () => {
                 board.querySelectorAll('.piece').forEach(n => n.remove());
                 baseLayer.innerHTML = '';
+
+                selectedBase = null;
+                selectedBasePrice = 0; // ✅ เพิ่ม
+
                 [...baseList.querySelectorAll(".baseItem")].forEach(el => el.classList.remove("active"));
                 const hint = board.querySelector('.boardHint');
                 if (hint) hint.style.display = '';
+
+                updateTotals(); // ✅ เพิ่ม
             });
 
             document.getElementById('btnCenter').addEventListener('click', () => {
@@ -660,8 +731,34 @@
                 URL.revokeObjectURL(url);
             }
 
+            (function enableTrayDragScroll() {
+                let isDown = false, startX = 0, startScroll = 0;
+
+                tray.addEventListener('pointerdown', (e) => {
+                    if (isTouchLike()) return; // มือถือใช้ swipe ตามธรรมชาติอยู่แล้ว
+                    isDown = true;
+                    tray.setPointerCapture(e.pointerId);
+                    startX = e.clientX;
+                    startScroll = tray.scrollLeft;
+                    tray.classList.add('dragScroll');
+                });
+
+                tray.addEventListener('pointermove', (e) => {
+                    if (!isDown) return;
+                    const dx = e.clientX - startX;
+                    tray.scrollLeft = startScroll - dx;
+                });
+
+                function end() {
+                    isDown = false;
+                    tray.classList.remove('dragScroll');
+                }
+                tray.addEventListener('pointerup', end);
+                tray.addEventListener('pointercancel', end);
+            })();
 
             // init
+            updateTotals();
             loadTrayFromJson();
             loadBaseFromJson();
         })();

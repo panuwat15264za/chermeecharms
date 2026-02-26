@@ -142,6 +142,11 @@ button.soft {
     -webkit-backdrop-filter: blur(6px);
 }
 
+.charmCount {
+    opacity: .8;
+    margin-left: 6px;
+}
+
 .board {
     position: relative;
     margin: 0 12px;

@@ -54,7 +54,10 @@
 
         <div class="tray">
             <div class="trayHead">
-                <div class="pill">เลือกชาร์มด้านล่างแล้วลากขึ้นไป</div>
+                <div class="pill">
+                    เลือกชาร์มด้านล่างแล้วลากขึ้นไป
+                    <span class="charmCount" id="charmCount"></span>
+                </div>
             </div>
 
             <div id="trayList" class="trayList"></div>
@@ -173,14 +176,13 @@
                     const basePath = data.basePath || '';
                     const items = Array.isArray(data.items) ? data.items : [];
 
-                    // ✅ เอาเฉพาะ Clock (ตาม json ของคุณมี path: "clock/")
                     BASES = items
-                        .filter(it => (it.path && String(it.path).toLowerCase().includes('clock')) ||
-                            String(it.file || '').toLowerCase().startsWith('clock'))
+                        .filter(it => (it.path && String(it.path).toLowerCase().includes('bases')) ||
+                            String(it.file || '').toLowerCase().startsWith('bases'))
                         .map((it, i) => {
                             const path = (it.path || basePath || '');
                             return {
-                                name: (it.name && String(it.name).trim()) ? it.name : `Clock ${i + 1}`,
+                                name: (it.name && String(it.name).trim()) ? it.name : `Base ${i + 1}`,
                                 src: path + it.file,
                                 price: Number(it.price || 0),
                             };
@@ -260,7 +262,19 @@
 
                     tray.innerHTML = '';
 
-                    items.forEach((it) => {
+                    // ✅ กรองเฉพาะชาร์ม (ไม่เอา bases)
+                    const charmItems = items.filter(it => {
+                        const p = String(it.path || '').toLowerCase();
+                        const f = String(it.file || '').toLowerCase();
+                        const isBase = p.includes('bases') || f.startsWith('bases/');
+                        return !isBase; // ที่เหลือถือเป็น charm
+                    });
+
+                    // ✅ แสดงจำนวนชาร์มบนหัว tray
+                    const charmCountEl = document.getElementById('charmCount');
+                    if (charmCountEl) charmCountEl.textContent = ` (${charmItems.length})`;
+
+                    charmItems.forEach((it) => {
                         const path = (it.path || basePath || '');
                         const src = path + it.file;
                         const price = Number(it.price || 0);
@@ -286,6 +300,9 @@
                     tray.innerHTML = `<div style="color:rgba(255,255,255,.75);padding:10px">
       ไม่พบ item.json หรือโหลดไม่ได้ — กรุณาเช็คว่า item.json อยู่ข้างๆ product.html
     </div>`;
+
+                    const charmCountEl = document.getElementById('charmCount');
+                    if (charmCountEl) charmCountEl.textContent = '';
                 }
             }
 

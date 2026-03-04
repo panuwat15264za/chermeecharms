@@ -1,6 +1,8 @@
 {
   "basePath": "charm/",
   "items": [
+    { "file": "A (0).PNG", "name": "", "price": 39 },
+    { "file": "A (0.1).PNG", "name": "", "price": 39 },
     { "file": "A (1).PNG", "name": "", "price": 39 },
     { "file": "A (2).PNG", "name": "", "price": 39 },
     { "file": "A (3).PNG", "name": "", "price": 39 },
@@ -234,6 +236,22 @@
     { "file": "Main (8).PNG", "path": "bases/", "name": "", "price": 349 },
     { "file": "Main (9).PNG", "path": "bases/", "name": "", "price": 349 },
     { "file": "Main (10).PNG", "path": "bases/", "name": "", "price": 349 },
-    { "file": "Main (11).PNG", "path": "bases/", "name": "", "price": 349 }
+    { "file": "Main (11).PNG", "path": "bases/", "name": "", "price": 349 },
+    { "file": "Main (12).PNG", "path": "bases/", "name": "", "price": 349 },
+    { "file": "Main (13).PNG", "path": "bases/", "name": "", "price": 349 },
+    { "file": "Main (14).PNG", "path": "bases/", "name": "", "price": 349 },
+    { "file": "Main (15).PNG", "path": "bases/", "name": "", "price": 349 },
+    { "file": "Main (16).PNG", "path": "bases/", "name": "", "price": 349 },
+    { "file": "Main (17).PNG", "path": "bases/", "name": "", "price": 349 },
+    { "file": "Main (18).PNG", "path": "bases/", "name": "", "price": 349 },
+    { "file": "Main (19).PNG", "path": "bases/", "name": "", "price": 349 },
+    { "file": "Main (20).PNG", "path": "bases/", "name": "", "price": 349 },
+    { "file": "Main (21).PNG", "path": "bases/", "name": "", "price": 349 },
+    { "file": "Main (22).PNG", "path": "bases/", "name": "", "price": 349 },
+    { "file": "Main (23).PNG", "path": "bases/", "name": "", "price": 349 },
+    { "file": "Main (24).PNG", "path": "bases/", "name": "", "price": 349 },
+    { "file": "Main (25).PNG", "path": "bases/", "name": "", "price": 349 },
+    { "file": "Main (26).PNG", "path": "bases/", "name": "", "price": 349 },
+    { "file": "Main (27).PNG", "path": "bases/", "name": "", "price": 349 }
   ]
 }
